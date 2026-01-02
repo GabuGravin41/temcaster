@@ -1,0 +1,74 @@
+<!-- index.html (updated importmap for better React 19 support) -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Personality Dynamics Lab</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            serif: ['Libre Baskerville', 'serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            background: 'hsl(210 20% 98%)',
+            foreground: 'hsl(215 25% 27%)',
+            card: 'hsl(0 0% 100%)',
+            'card-foreground': 'hsl(215 25% 27%)',
+            primary: 'hsl(215 40% 30%)',
+            'primary-foreground': 'hsl(0 0% 100%)',
+            secondary: 'hsl(210 20% 90%)',
+            'secondary-foreground': 'hsl(215 40% 30%)',
+            accent: 'hsl(200 60% 50%)',
+            'accent-foreground': 'hsl(0 0% 100%)',
+            muted: 'hsl(210 20% 90%)',
+            'muted-foreground': 'hsl(215 20% 50%)',
+            border: 'hsl(215 20% 85%)',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: hsl(210 20% 98%);
+      color: hsl(215 25% 27%);
+      margin: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+    .animate-in {
+      animation-duration: 700ms;
+      animation-fill-mode: both;
+    }
+    .fade-in {
+      animation-name: fadeIn;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+  </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@19",
+    "react-dom/": "https://esm.sh/react-dom@19/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "@google/generative-ai": "https://esm.sh/@google/generative-ai@^0.24.1"
+  }
+}
+</script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="module" src="index.tsx"></script>
+</body>
+</html>
