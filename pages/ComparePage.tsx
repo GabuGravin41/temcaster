@@ -1,14 +1,14 @@
 
 // ComparePage.tsx
-import React, { useEffect, useState } from "https://esm.sh/react@19";
-import { Link, useLocation } from "https://esm.sh/wouter@3.9.0";
+import React, { useEffect, useState } from "react";
+import { Link, useLocation } from "wouter";
 import { Profile, AnalysisResult } from "../types.ts";
 import { getProfiles, decodeAndSaveProfile } from "../services/storage.ts";
 import { analyzeRelationship } from "../services/geminiService.ts";
 import { ResultsChart } from "../components/ResultsChart.tsx";
 import { RadarChart } from "../components/RadarChart.tsx";
 import { Button } from "../components/ui/button.tsx";
-import { BrainCircuit, ArrowLeft, Zap, Dna, Plus, Download, AlertCircle } from "https://esm.sh/lucide-react@0.562.0";
+import { BrainCircuit, ArrowLeft, Zap, Dna, Plus, Download, AlertCircle, RefreshCw } from "lucide-react";
 
 export default function ComparePage() {
   const [_, setLocation] = useLocation();
@@ -25,6 +25,7 @@ export default function ComparePage() {
 
   const [aiAnalysis, setAiAnalysis] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   const loadProfiles = () => {
     const loaded = getProfiles();
@@ -59,15 +60,20 @@ export default function ComparePage() {
   const handleAiAnalysis = async () => {
     if (!profileA || !profileB) return;
     setIsAnalyzing(true);
+    setAnalysisError(null);
     try {
       const result = await analyzeRelationship(
         { name: profileA.name, scores: profileA.scores, role: profileA.role },
         { name: profileB.name, scores: profileB.scores, role: profileB.role }
       );
       setAiAnalysis(result);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      alert("Analysis failed. Please check console for details.");
+      if (e.message === "MISSING_API_KEY") {
+        setAnalysisError("System Configuration Error: API_KEY is missing. Please configure your Vercel environment variables.");
+      } else {
+        setAnalysisError("Analysis failed. The AI service may be temporarily unavailable.");
+      }
     } finally {
       setIsAnalyzing(false);
     }
@@ -142,6 +148,7 @@ export default function ComparePage() {
                  onChange={(e) => {
                     setSelectedIdA(e.target.value);
                     setAiAnalysis(null);
+                    setAnalysisError(null);
                  }}
                >
                  {profiles.map(p => <option key={p.id} value={p.id}>{p.name} ({p.role})</option>)}
@@ -155,6 +162,7 @@ export default function ComparePage() {
                  onChange={(e) => {
                    setSelectedIdB(e.target.value);
                    setAiAnalysis(null);
+                   setAnalysisError(null);
                  }}
                >
                  {profiles.map(p => <option key={p.id} value={p.id}>{p.name} ({p.role})</option>)}
@@ -197,7 +205,21 @@ export default function ComparePage() {
 
             {/* AI Analysis Column */}
             <div className="space-y-8">
-              {!aiAnalysis && !isAnalyzing ? (
+              {/* Error Display */}
+              {analysisError && (
+                 <div className="bg-red-50 border border-red-200 rounded-[32px] p-8 text-center space-y-4 animate-in fade-in">
+                    <AlertCircle className="w-12 h-12 text-red-500 mx-auto" />
+                    <div>
+                        <h3 className="text-lg font-bold text-red-800">Analysis Halted</h3>
+                        <p className="text-red-700 text-sm max-w-sm mx-auto">{analysisError}</p>
+                    </div>
+                    <Button onClick={handleAiAnalysis} variant="outline" className="border-red-200 hover:bg-red-100 text-red-700">
+                        <RefreshCw className="mr-2 w-4 h-4" /> Retry
+                    </Button>
+                 </div>
+              )}
+
+              {!aiAnalysis && !isAnalyzing && !analysisError ? (
                 <div className="bg-primary/5 border border-dashed border-primary/20 rounded-[48px] p-16 text-center space-y-8 h-full flex flex-col items-center justify-center min-h-[400px]">
                   <BrainCircuit className="w-16 h-16 text-primary/20" />
                   <div className="space-y-3">
@@ -216,7 +238,7 @@ export default function ComparePage() {
                     <div key={i} className="h-40 bg-muted/40 rounded-[40px] animate-pulse"></div>
                   ))}
                 </div>
-              ) : (
+              ) : aiAnalysis ? (
                 <div className="space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-1000">
                   <div className="bg-primary text-primary-foreground rounded-[40px] shadow-2xl p-10 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 p-8 opacity-10 rotate-12 group-hover:rotate-0 transition-transform">
@@ -269,7 +291,7 @@ export default function ComparePage() {
                      </div>
                   </div>
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
         )}

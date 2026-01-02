@@ -1,3 +1,4 @@
+
 // geminiService.ts
 import { GoogleGenAI, Type } from "@google/genai";
 import { DomainScore, AnalysisResult } from "../types.ts";
@@ -7,9 +8,18 @@ export const analyzeRelationship = async (
   profileB: { name: string; scores: DomainScore[]; role: string }
 ): Promise<AnalysisResult> => {
   
-  const apiKey = process.env.API_KEY;
+  // Safety check for process.env existence in browser environments
+  let apiKey = "";
+  try {
+    if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
+      apiKey = process.env.API_KEY;
+    }
+  } catch (e) {
+    console.warn("Could not access process.env");
+  }
+
   if (!apiKey) {
-    throw new Error("API Key not found.");
+    throw new Error("MISSING_API_KEY");
   }
   
   const ai = new GoogleGenAI({ apiKey });
@@ -73,8 +83,11 @@ export const analyzeRelationship = async (
     if (!text) throw new Error("No response from AI");
     
     return JSON.parse(text) as AnalysisResult;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini Analysis Error:", error);
-    throw new Error("Failed to generate analysis.");
+    if (error.message && error.message.includes("404")) {
+         throw new Error("Model not found. Please check model name.");
+    }
+    throw error;
   }
 };

@@ -5,7 +5,7 @@ import { useLocation } from "https://esm.sh/wouter@3.9.0";
 import { getQuestions, calculateScores } from "../lib/scoring.ts";
 import { saveProfile, generateId } from "../services/storage.ts";
 import { Button } from "../components/ui/button.tsx";
-import { ArrowLeft, Save } from "https://esm.sh/lucide-react@0.562.0";
+import { ArrowLeft, Save, User, Users } from "https://esm.sh/lucide-react@0.562.0";
 import { Answer, Profile } from "../types.ts";
 
 export default function TestPage() {
@@ -16,8 +16,9 @@ export default function TestPage() {
   const [isDone, setIsDone] = useState(false);
   
   // Profile Form State
+  const [profileType, setProfileType] = useState<'me' | 'other' | null>(null);
   const [name, setName] = useState("");
-  const [role, setRole] = useState<Profile['role']>("Parent");
+  const [role, setRole] = useState<Profile['role']>("Partner");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const currentQuestion = questions[currentIdx];
@@ -49,11 +50,13 @@ export default function TestPage() {
     if (!name.trim()) return;
     setIsSubmitting(true);
     
+    const finalRole = profileType === 'me' ? 'Self' : role;
+    
     const scores = calculateScores(answers);
     const newProfile: Profile = {
       id: generateId(),
       name: name,
-      role: role,
+      role: finalRole,
       scores: scores,
       timestamp: Date.now()
     };
@@ -79,43 +82,70 @@ export default function TestPage() {
   if (isDone) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 animate-in fade-in">
-         <div className="max-w-md w-full bg-card border border-border rounded-[32px] p-8 shadow-xl space-y-6">
+         <div className="max-w-lg w-full bg-card border border-border rounded-[32px] p-8 md:p-12 shadow-xl space-y-8">
             <div className="text-center space-y-2">
               <h2 className="text-3xl font-serif text-primary">Mapping Complete</h2>
-              <p className="text-muted-foreground">Save this profile to your family library to enable dynamics analysis.</p>
+              <p className="text-muted-foreground">Categorize this profile to add it to your library.</p>
             </div>
 
+            {/* Step 1: Who is this? */}
             <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Name / Alias</label>
-                <input 
-                  type="text" 
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-secondary/30 border border-border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-primary/50"
-                  placeholder="e.g. John, Mom, Partner"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Role</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {['Parent', 'Child', 'Partner', 'Friend'].map((r) => (
-                    <button
-                      key={r}
-                      onClick={() => setRole(r as any)}
-                      className={`p-2 rounded-lg text-sm font-medium transition-all ${role === r ? 'bg-primary text-primary-foreground' : 'bg-secondary/50 text-foreground hover:bg-secondary'}`}
-                    >
-                      {r}
-                    </button>
-                  ))}
-                </div>
-              </div>
+               <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground text-center block">Who took this assessment?</label>
+               <div className="grid grid-cols-2 gap-4">
+                  <button 
+                    onClick={() => { setProfileType('me'); setRole('Self'); }}
+                    className={`p-6 rounded-2xl border-2 transition-all flex flex-col items-center gap-3 ${profileType === 'me' ? 'border-primary bg-primary/5 text-primary' : 'border-border hover:border-primary/50 text-muted-foreground'}`}
+                  >
+                    <User className="w-8 h-8" />
+                    <span className="font-semibold">I Did</span>
+                  </button>
+                  <button 
+                    onClick={() => setProfileType('other')}
+                    className={`p-6 rounded-2xl border-2 transition-all flex flex-col items-center gap-3 ${profileType === 'other' ? 'border-primary bg-primary/5 text-primary' : 'border-border hover:border-primary/50 text-muted-foreground'}`}
+                  >
+                    <Users className="w-8 h-8" />
+                    <span className="font-semibold">Someone Else</span>
+                  </button>
+               </div>
             </div>
 
-            <Button onClick={handleSaveProfile} disabled={!name || isSubmitting} className="w-full h-12 text-lg">
-              {isSubmitting ? "Saving..." : "Save Profile & View Results"} <Save className="ml-2 w-4 h-4" />
-            </Button>
+            {/* Step 2: Details */}
+            {profileType && (
+              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Name</label>
+                  <input 
+                    type="text" 
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full bg-secondary/30 border border-border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    placeholder={profileType === 'me' ? "Enter your name" : "Enter their name"}
+                    autoFocus
+                  />
+                </div>
+
+                {profileType === 'other' && (
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Relationship to You</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {['Partner', 'Child', 'Parent', 'Friend'].map((r) => (
+                        <button
+                          key={r}
+                          onClick={() => setRole(r as any)}
+                          className={`p-3 rounded-xl text-sm font-medium transition-all ${role === r ? 'bg-primary text-primary-foreground shadow-md' : 'bg-secondary/50 text-foreground hover:bg-secondary'}`}
+                        >
+                          {r}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <Button onClick={handleSaveProfile} disabled={!name || isSubmitting} className="w-full h-12 text-lg rounded-xl">
+                  {isSubmitting ? "Saving..." : "Save Profile & View Results"} <Save className="ml-2 w-4 h-4" />
+                </Button>
+              </div>
+            )}
          </div>
       </div>
     );

@@ -1,5 +1,5 @@
 
-import { Answer, DomainScore, Domain } from "../types.ts";
+import { Answer, DomainScore, Domain, FacetScore } from "../types.ts";
 
 export interface Question {
   id: string;
@@ -9,6 +9,15 @@ export interface Question {
   facet: number;
 }
 
+const FACET_NAMES: Record<string, string[]> = {
+  'N': ['Anxiety', 'Anger', 'Depression', 'Self-Consciousness', 'Immoderation', 'Vulnerability'],
+  'E': ['Friendliness', 'Gregariousness', 'Assertiveness', 'Activity Level', 'Excitement-Seeking', 'Cheerfulness'],
+  'O': ['Imagination', 'Artistic Interests', 'Emotionality', 'Adventurousness', 'Intellect', 'Liberalism'],
+  'A': ['Trust', 'Morality', 'Altruism', 'Cooperation', 'Modesty', 'Sympathy'],
+  'C': ['Self-Efficacy', 'Orderliness', 'Dutifulness', 'Achievement-Striving', 'Self-Discipline', 'Cautiousness']
+};
+
+// ... existing questions array ...
 const questions: Question[] = [
   {
     id: '43c98ce8-a07a-4dc2-80f6-c1b2a2485f06',
@@ -866,22 +875,31 @@ export const calculateScores = (answers: Answer[]): DomainScore[] => {
   const domainScores: Record<string, number> = { O: 0, C: 0, E: 0, A: 0, N: 0 };
   const domainCounts: Record<string, number> = { O: 0, C: 0, E: 0, A: 0, N: 0 };
 
+  // Track facets: { 'N1': score, 'N2': score, ... }
+  const facetScores: Record<string, number> = {};
+  const facetCounts: Record<string, number> = {};
+
   answers.forEach(answer => {
     const q = questions.find(q => q.id === answer.questionId);
     if (!q) return;
     let val = answer.value;
-    // Map 1-5 scale: If keyed minus, reverse the score. 
-    // 5 -> 1, 4 -> 2, 3 -> 3, 2 -> 4, 1 -> 5.
+    
+    // Map 1-5 scale: If keyed minus, reverse the score.
     if (q.keyed === 'minus') val = 6 - answer.value;
     
+    // Aggregate Domain
     domainScores[q.domain] += val;
     domainCounts[q.domain]++;
+
+    // Aggregate Facet
+    const facetKey = `${q.domain}${q.facet}`; // e.g., "N1"
+    facetScores[facetKey] = (facetScores[facetKey] || 0) + val;
+    facetCounts[facetKey] = (facetCounts[facetKey] || 0) + 1;
   });
 
   return Object.keys(domainMap).map(key => {
     const raw = domainScores[key];
     const count = domainCounts[key];
-    // Avoid division by zero if no questions answered for a domain (shouldn't happen in full test)
     const max = count > 0 ? count * 5 : 5; 
     const percentage = Math.round((raw / max) * 100);
     
@@ -889,6 +907,32 @@ export const calculateScores = (answers: Answer[]): DomainScore[] => {
     if (percentage < 40) level = 'Low';
     else if (percentage > 60) level = 'High';
     
-    return { domain: domainMap[key], score: raw, maxScore: max, percentage, level };
+    // Build facets for this domain
+    const facets: FacetScore[] = [];
+    // There are always 6 facets per domain in NEO-PI-R
+    for (let i = 1; i <= 6; i++) {
+        const fKey = `${key}${i}`;
+        const fRaw = facetScores[fKey] || 0;
+        const fCount = facetCounts[fKey] || 0;
+        const fMax = fCount > 0 ? fCount * 5 : 5;
+        const fPct = Math.round((fRaw / fMax) * 100);
+        
+        let fLevel: 'Low' | 'Neutral' | 'High' = 'Neutral';
+        if (fPct < 40) fLevel = 'Low';
+        else if (fPct > 60) fLevel = 'High';
+
+        // Get name from map (array index is facetNum - 1)
+        const fName = FACET_NAMES[key][i - 1] || `Facet ${i}`;
+
+        facets.push({
+            name: fName,
+            score: fRaw,
+            maxScore: fMax,
+            percentage: fPct,
+            level: fLevel
+        });
+    }
+
+    return { domain: domainMap[key], score: raw, maxScore: max, percentage, level, facets };
   });
 };

@@ -1,12 +1,21 @@
 
 export type Domain = 'Openness' | 'Conscientiousness' | 'Extraversion' | 'Agreeableness' | 'Neuroticism';
 
+export interface FacetScore {
+  name: string;
+  score: number;
+  maxScore: number;
+  percentage: number;
+  level: 'Low' | 'Neutral' | 'High';
+}
+
 export interface DomainScore {
   domain: Domain;
   score: number;
   maxScore: number;
   percentage: number;
   level: 'Low' | 'Neutral' | 'High';
+  facets: FacetScore[];
 }
 
 export interface Answer {
@@ -17,7 +26,7 @@ export interface Answer {
 export interface Profile {
   id: string;
   name: string;
-  role: 'Parent' | 'Child' | 'Partner' | 'Friend' | 'Other';
+  role: 'Self' | 'Parent' | 'Child' | 'Partner' | 'Friend' | 'Other';
   scores: DomainScore[];
   timestamp: number;
 }

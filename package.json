@@ -11,7 +11,10 @@
   "dependencies": {
     "react": "^19.2.3",
     "react-dom": "19",
-    "@google/generative-ai": "^0.24.1",
+    "wouter": "3.9.0",
+    "clsx": "2.1.1",
+    "tailwind-merge": "3.4.0",
+    "lucide-react": "0.562.0",
     "@google/genai": "latest"
   },
   "devDependencies": {
