@@ -12,7 +12,7 @@ export default function HomePage() {
         <div className="max-w-5xl mx-auto space-y-8">
           <div className="inline-flex items-center space-x-2 bg-primary/5 text-primary px-3 py-1 rounded-full text-sm font-medium border border-primary/10">
             <Activity className="w-4 h-4" />
-            <span>Based on IPIP-NEO-PI-R Scientific Model</span>
+            <span>Full 120-Item IPIP-NEO-PI-R Scientific Assessment</span>
           </div>
           
           <h1 className="text-5xl md:text-7xl font-serif font-medium tracking-tight leading-tight max-w-4xl">
@@ -21,13 +21,13 @@ export default function HomePage() {
           
           <p className="text-xl text-muted-foreground max-w-2xl leading-relaxed">
             The biggest conflict in any society is often the difference in personalities. 
-            Our platform uses the Big Five aspect scale to scientifically map temperaments.
+            Our platform uses the comprehensive 120-question Big Five scale to scientifically map temperaments (approx. 10 mins).
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 pt-4">
             <Link href="/test">
               <Button size="lg" className="rounded-full cursor-pointer h-14 px-8 text-lg">
-                Take the Assessment <ArrowRight className="ml-2 w-5 h-5" />
+                Start Assessment <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
             <Link href="/learn">
@@ -46,14 +46,14 @@ export default function HomePage() {
               <Brain className="w-6 h-6" />
             </div>
             <h3 className="text-2xl font-serif">Neuroscience Backed</h3>
-            <p className="text-muted-foreground text-sm">Clinical OCEAN model diagnostics focused on the biological roots of behavior.</p>
+            <p className="text-muted-foreground text-sm">Clinical OCEAN model diagnostics using the full 120-item inventory for maximum accuracy.</p>
           </div>
           <div className="space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center text-accent">
               <Users className="w-6 h-6" />
             </div>
             <h3 className="text-2xl font-serif">Family Dynamics</h3>
-            <p className="text-muted-foreground text-sm">Identify potential friction zones between parents and children via simulated profiles.</p>
+            <p className="text-muted-foreground text-sm">Identify potential friction zones between parents and children via detailed profile comparison.</p>
           </div>
           <div className="space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
