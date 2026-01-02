@@ -1,6 +1,5 @@
-
 // geminiService.ts
-import { GoogleGenAI, Type } from "https://esm.sh/@google/genai@0.1.1";
+import { GoogleGenAI, Type } from "@google/genai";
 import { DomainScore, AnalysisResult } from "../types.ts";
 
 export const analyzeRelationship = async (
