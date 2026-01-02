@@ -3,12 +3,12 @@
 import React, { useEffect, useState } from "https://esm.sh/react@19";
 import { Link, useLocation } from "https://esm.sh/wouter@3.9.0";
 import { Profile, AnalysisResult } from "../types.ts";
-import { getProfiles } from "../services/storage.ts";
+import { getProfiles, decodeAndSaveProfile } from "../services/storage.ts";
 import { analyzeRelationship } from "../services/geminiService.ts";
 import { ResultsChart } from "../components/ResultsChart.tsx";
 import { RadarChart } from "../components/RadarChart.tsx";
 import { Button } from "../components/ui/button.tsx";
-import { BrainCircuit, Loader2, ArrowLeft, Zap, Dna, Plus } from "https://esm.sh/lucide-react@0.562.0";
+import { BrainCircuit, ArrowLeft, Zap, Dna, Plus, Download, AlertCircle } from "https://esm.sh/lucide-react@0.562.0";
 
 export default function ComparePage() {
   const [_, setLocation] = useLocation();
@@ -18,17 +18,40 @@ export default function ComparePage() {
   const [selectedIdA, setSelectedIdA] = useState<string>("");
   const [selectedIdB, setSelectedIdB] = useState<string>("");
   
+  // Import State
+  const [showImport, setShowImport] = useState(false);
+  const [importString, setImportString] = useState("");
+  const [importError, setImportError] = useState("");
+
   const [aiAnalysis, setAiAnalysis] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  useEffect(() => {
+  const loadProfiles = () => {
     const loaded = getProfiles();
     setProfiles(loaded);
-    
-    // Auto-select first two if available
-    if (loaded.length > 0) setSelectedIdA(loaded[0].id);
-    if (loaded.length > 1) setSelectedIdB(loaded[1].id);
+    // Auto-select logic if not already selected
+    if (!selectedIdA && loaded.length > 0) setSelectedIdA(loaded[0].id);
+    if (!selectedIdB && loaded.length > 1) setSelectedIdB(loaded[1].id);
+  };
+
+  useEffect(() => {
+    loadProfiles();
   }, []);
+
+  const handleImport = () => {
+    setImportError("");
+    if (!importString) return;
+    
+    const imported = decodeAndSaveProfile(importString);
+    if (imported) {
+        loadProfiles();
+        setSelectedIdB(imported.id); // Auto-select the imported friend
+        setShowImport(false);
+        setImportString("");
+    } else {
+        setImportError("Invalid profile string. Please check and try again.");
+    }
+  };
 
   const profileA = profiles.find(p => p.id === selectedIdA);
   const profileB = profiles.find(p => p.id === selectedIdB);
@@ -38,8 +61,8 @@ export default function ComparePage() {
     setIsAnalyzing(true);
     try {
       const result = await analyzeRelationship(
-        { name: profileA.name, scores: profileA.scores },
-        { name: profileB.name, scores: profileB.scores }
+        { name: profileA.name, scores: profileA.scores, role: profileA.role },
+        { name: profileB.name, scores: profileB.scores, role: profileB.role }
       );
       setAiAnalysis(result);
     } catch (e) {
@@ -50,8 +73,6 @@ export default function ComparePage() {
     }
   };
 
-  const hasEnoughProfiles = profiles.length >= 2;
-
   return (
     <div className="min-h-screen bg-background p-6 md:p-12 animate-in fade-in duration-700">
       <div className="max-w-7xl mx-auto space-y-12">
@@ -59,15 +80,39 @@ export default function ComparePage() {
         <div className="flex items-center justify-between">
           <Link href="/results">
             <Button variant="ghost" className="-ml-4">
-              <ArrowLeft className="mr-2 w-4 h-4" /> Back to Results
+              <ArrowLeft className="mr-2 w-4 h-4" /> Back to Library
             </Button>
           </Link>
-          <Link href="/test">
-            <Button variant="outline" className="rounded-full">
-              <Plus className="mr-2 w-4 h-4" /> Add New Profile
+          <div className="flex gap-2">
+            <Button variant="outline" className="rounded-full" onClick={() => setShowImport(!showImport)}>
+                <Download className="mr-2 w-4 h-4" /> Import Friend
             </Button>
-          </Link>
+            <Link href="/test">
+                <Button variant="secondary" className="rounded-full">
+                <Plus className="mr-2 w-4 h-4" /> New Test
+                </Button>
+            </Link>
+          </div>
         </div>
+
+        {/* Import Modal Area */}
+        {showImport && (
+            <div className="bg-card border border-border p-6 rounded-2xl shadow-xl max-w-2xl mx-auto animate-in fade-in slide-in-from-top-4">
+                <h3 className="text-xl font-serif mb-2">Import Profile</h3>
+                <p className="text-muted-foreground text-sm mb-4">Paste the shared code string here to add a friend, partner, or family member to your library for comparison.</p>
+                <textarea 
+                    className="w-full h-24 bg-secondary/30 rounded-xl border border-border p-3 font-mono text-xs focus:ring-2 focus:ring-primary/50 outline-none resize-none"
+                    placeholder="Paste code starting with eyJ..."
+                    value={importString}
+                    onChange={(e) => setImportString(e.target.value)}
+                />
+                {importError && <p className="text-red-500 text-xs mt-2">{importError}</p>}
+                <div className="flex justify-end mt-4 gap-2">
+                    <Button variant="ghost" onClick={() => setShowImport(false)}>Cancel</Button>
+                    <Button onClick={handleImport}>Import & Select</Button>
+                </div>
+            </div>
+        )}
 
         <div className="space-y-4">
           <h1 className="text-4xl md:text-5xl font-serif font-medium text-foreground tracking-tight">
@@ -82,7 +127,7 @@ export default function ComparePage() {
         {profiles.length < 2 ? (
            <div className="bg-yellow-50 border border-yellow-200 p-8 rounded-2xl text-center">
              <h3 className="text-xl font-serif text-yellow-800 mb-2">Insufficient Data</h3>
-             <p className="text-yellow-700 mb-4">You need at least two saved profiles to run a comparison.</p>
+             <p className="text-yellow-700 mb-4">You need at least two profiles to compare. Import a friend's code or take the test again.</p>
              <Link href="/test">
                <Button>Take Test & Save Profile</Button>
              </Link>
@@ -90,7 +135,7 @@ export default function ComparePage() {
         ) : (
           <div className="grid md:grid-cols-2 gap-6 bg-secondary/30 p-6 rounded-[32px] border border-border/50">
             <div className="space-y-2">
-               <label className="text-xs font-bold uppercase tracking-widest text-primary">Subject A (Base)</label>
+               <label className="text-xs font-bold uppercase tracking-widest text-primary">Person A</label>
                <select 
                  className="w-full p-3 rounded-xl border border-border bg-card"
                  value={selectedIdA}
@@ -103,7 +148,7 @@ export default function ComparePage() {
                </select>
             </div>
             <div className="space-y-2">
-               <label className="text-xs font-bold uppercase tracking-widest text-accent">Subject B (Comparison)</label>
+               <label className="text-xs font-bold uppercase tracking-widest text-accent">Person B</label>
                <select 
                  className="w-full p-3 rounded-xl border border-border bg-card"
                  value={selectedIdB}
@@ -191,7 +236,7 @@ export default function ComparePage() {
                   <section className="space-y-6">
                     <h2 className="text-2xl font-serif flex items-center gap-3">
                       <Zap className="w-6 h-6 text-yellow-600" />
-                      Critical Friction Points
+                      Predicted Conflict Scenarios
                     </h2>
                     <div className="grid gap-4">
                       {aiAnalysis?.frictionPoints.map((point, i) => (
@@ -205,7 +250,7 @@ export default function ComparePage() {
                   <div className="bg-secondary/40 p-10 rounded-[40px] border border-border/50">
                       <div className="flex items-center gap-3 mb-4 text-muted-foreground">
                           <Dna className="w-5 h-5" />
-                          <h3 className="text-[10px] font-bold uppercase tracking-[0.2em]">Evolutionary Context</h3>
+                          <h3 className="text-[10px] font-bold uppercase tracking-[0.2em]">The Neuroscience Mechanism</h3>
                       </div>
                       <p className="text-sm md:text-base leading-relaxed text-foreground/80 font-serif italic">
                           {aiAnalysis?.scientificContext}
@@ -213,7 +258,7 @@ export default function ComparePage() {
                   </div>
 
                   <div className="space-y-6">
-                     <h2 className="text-2xl font-serif">Containment Protocols</h2>
+                     <h2 className="text-2xl font-serif">Actionable Protocols</h2>
                      <div className="grid gap-3">
                        {aiAnalysis?.strategies.map((strat, i) => (
                          <div key={i} className="flex gap-6 p-6 rounded-2xl bg-muted/30 border border-border/30 text-sm">

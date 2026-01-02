@@ -2,26 +2,58 @@
 // ResultsPage.tsx
 import React, { useEffect, useState } from "https://esm.sh/react@19";
 import { Link, useLocation } from "https://esm.sh/wouter@3.9.0";
-import { TestResult } from "../types.ts";
+import { TestResult, Profile } from "../types.ts";
 import { TRAIT_DETAILS } from "../lib/content.ts";
+import { encodeProfile, getProfiles } from "../services/storage.ts";
 import { ResultsChart } from "../components/ResultsChart.tsx";
 import { Button } from "../components/ui/button.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.tsx";
-import { ArrowLeft, Users, ChevronRight, ChevronDown, BookOpen } from "https://esm.sh/lucide-react@0.562.0";
+import { ArrowLeft, Users, ChevronRight, ChevronDown, BookOpen, Share2, Copy, Check } from "https://esm.sh/lucide-react@0.562.0";
 
 export default function ResultsPage() {
   const [_, setLocation] = useLocation();
   const [result, setResult] = useState<TestResult | null>(null);
   const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
+  const [showShare, setShowShare] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [profileIdString, setProfileIdString] = useState("");
 
   useEffect(() => {
+    // Try to load from lastTestResult first
     const saved = localStorage.getItem("lastTestResult");
     if (saved) {
       setResult(JSON.parse(saved));
     } else {
-      setLocation("/");
+      // If no last result, check if we have any profiles, default to the last one
+      const profiles = getProfiles();
+      if (profiles.length > 0) {
+        const last = profiles[profiles.length - 1];
+        setResult({
+            answers: [],
+            scores: last.scores,
+            timestamp: last.timestamp,
+            personName: last.name
+        });
+      } else {
+        setLocation("/");
+      }
     }
   }, [setLocation]);
+
+  useEffect(() => {
+    if (result) {
+        // Find the profile object to encode
+        const profiles = getProfiles();
+        const profile = profiles.find(p => p.timestamp === result.timestamp) || {
+            id: 'temp',
+            name: result.personName,
+            role: 'Friend',
+            scores: result.scores,
+            timestamp: result.timestamp
+        } as Profile;
+        setProfileIdString(encodeProfile(profile));
+    }
+  }, [result]);
 
   if (!result) return null;
 
@@ -29,21 +61,25 @@ export default function ResultsPage() {
     setExpandedDomain(expandedDomain === domain ? null : domain);
   };
 
+  const handleCopy = () => {
+    navigator.clipboard.writeText(profileIdString);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <div className="min-h-screen bg-background p-6 md:p-12 animate-in fade-in duration-700">
       <div className="max-w-4xl mx-auto space-y-12">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <Link href="/">
             <Button variant="ghost" className="-ml-4">
               <ArrowLeft className="mr-2 w-4 h-4" /> Home
             </Button>
           </Link>
           <div className="flex gap-2">
-            <Link href="/learn">
-                <Button variant="outline" className="rounded-full hidden sm:flex">
-                  <BookOpen className="mr-2 w-4 h-4" /> Model Guide
-                </Button>
-            </Link>
+            <Button variant="outline" className="rounded-full" onClick={() => setShowShare(!showShare)}>
+                <Share2 className="mr-2 w-4 h-4" /> Share Profile
+            </Button>
             <Link href="/compare">
                 <Button className="bg-primary text-white shadow-lg shadow-primary/20 rounded-full group">
                 <Users className="mr-2 w-4 h-4" /> Run Dynamics Analysis <ChevronRight className="ml-1 w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -52,9 +88,29 @@ export default function ResultsPage() {
           </div>
         </div>
 
+        {showShare && (
+            <div className="bg-card border border-border p-6 rounded-2xl shadow-lg animate-in slide-in-from-top-4">
+                <h3 className="font-serif text-lg mb-2">Share this Profile</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                    Copy this code and send it to a friend. They can paste it in the "Compare" section to see how your personalities interact.
+                </p>
+                <div className="flex gap-2">
+                    <input 
+                        type="text" 
+                        readOnly 
+                        value={profileIdString} 
+                        className="flex-1 bg-secondary/50 border border-border rounded-lg px-3 text-xs font-mono text-muted-foreground truncate"
+                    />
+                    <Button onClick={handleCopy} variant="secondary">
+                        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                    </Button>
+                </div>
+            </div>
+        )}
+
         <div className="space-y-4">
-          <h1 className="text-4xl md:text-5xl font-serif font-medium tracking-tight">Psychometric Profile</h1>
-          <p className="text-lg text-muted-foreground">Neural architecture summary based on the OCEAN behavioral model.</p>
+          <h1 className="text-4xl md:text-5xl font-serif font-medium tracking-tight">Psychometric Profile: <span className="text-primary italic">{result.personName}</span></h1>
+          <p className="text-lg text-muted-foreground">Neural architecture summary based on the 120-question IPIP-NEO-PI-R scale.</p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-12">
