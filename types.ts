@@ -1,3 +1,4 @@
+
 export type Domain = 'Openness' | 'Conscientiousness' | 'Extraversion' | 'Agreeableness' | 'Neuroticism';
 
 export interface DomainScore {
@@ -11,6 +12,14 @@ export interface DomainScore {
 export interface Answer {
   questionId: string;
   value: number;
+}
+
+export interface Profile {
+  id: string;
+  name: string;
+  role: 'Parent' | 'Child' | 'Partner' | 'Friend' | 'Other';
+  scores: DomainScore[];
+  timestamp: number;
 }
 
 export interface TestResult {

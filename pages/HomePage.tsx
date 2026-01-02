@@ -1,7 +1,8 @@
+
 import React from 'https://esm.sh/react@19';
 import { Link } from 'https://esm.sh/wouter@3.9.0';
 import { Button } from "../components/ui/button.tsx";
-import { ArrowRight, Brain, Activity, Users } from "https://esm.sh/lucide-react@0.562.0";
+import { ArrowRight, Brain, Activity, Users, BookOpen } from "https://esm.sh/lucide-react@0.562.0";
 
 export default function HomePage() {
   return (
@@ -25,8 +26,13 @@ export default function HomePage() {
 
           <div className="flex flex-col sm:flex-row gap-4 pt-4">
             <Link href="/test">
-              <Button size="lg" className="rounded-full cursor-pointer">
+              <Button size="lg" className="rounded-full cursor-pointer h-14 px-8 text-lg">
                 Take the Assessment <ArrowRight className="ml-2 w-5 h-5" />
+              </Button>
+            </Link>
+            <Link href="/learn">
+              <Button variant="outline" size="lg" className="rounded-full cursor-pointer h-14 px-8 text-lg bg-background/50">
+                <BookOpen className="mr-2 w-5 h-5" /> Explore the Science
               </Button>
             </Link>
           </div>

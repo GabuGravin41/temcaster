@@ -1,3 +1,4 @@
+
 // App.tsx
 import React from "https://esm.sh/react@19";
 import { Route, Switch } from "https://esm.sh/wouter@3.9.0";
@@ -6,6 +7,7 @@ import HomePage from "./pages/HomePage.tsx";
 import TestPage from "./pages/TestPage.tsx";
 import ResultsPage from "./pages/ResultsPage.tsx";
 import ComparePage from "./pages/ComparePage.tsx";
+import LearnPage from "./pages/LearnPage.tsx";
 import { Button } from "./components/ui/button.tsx";
 
 export default function App() {
@@ -18,6 +20,7 @@ export default function App() {
           <Route path="/test" component={TestPage} />
           <Route path="/results" component={ResultsPage} />
           <Route path="/compare" component={ComparePage} />
+          <Route path="/learn" component={LearnPage} />
           <Route>
             <div className="min-h-[70vh] flex items-center justify-center p-6 text-center">
               <div>

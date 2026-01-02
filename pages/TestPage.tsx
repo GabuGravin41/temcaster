@@ -1,16 +1,23 @@
+
 // TestPage.tsx
 import React, { useState } from "https://esm.sh/react@19";
 import { useLocation } from "https://esm.sh/wouter@3.9.0";
 import { getQuestions, calculateScores } from "../lib/scoring.ts";
+import { saveProfile, generateId } from "../services/storage.ts";
 import { Button } from "../components/ui/button.tsx";
-import { ArrowLeft } from "https://esm.sh/lucide-react@0.562.0";
-import { Answer } from "../types.ts";
+import { ArrowLeft, Save } from "https://esm.sh/lucide-react@0.562.0";
+import { Answer, Profile } from "../types.ts";
 
 export default function TestPage() {
   const [_, setLocation] = useLocation();
   const questions = getQuestions();
   const [currentIdx, setCurrentIdx] = useState(0);
   const [answers, setAnswers] = useState<Answer[]>([]);
+  const [isDone, setIsDone] = useState(false);
+  
+  // Profile Form State
+  const [name, setName] = useState("");
+  const [role, setRole] = useState<Profile['role']>("Parent");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const currentQuestion = questions[currentIdx];
@@ -34,14 +41,31 @@ export default function TestPage() {
     }
   };
 
-  const handleSubmit = () => {
+  const handleComplete = () => {
+    setIsDone(true);
+  };
+
+  const handleSaveProfile = () => {
+    if (!name.trim()) return;
     setIsSubmitting(true);
+    
     const scores = calculateScores(answers);
+    const newProfile: Profile = {
+      id: generateId(),
+      name: name,
+      role: role,
+      scores: scores,
+      timestamp: Date.now()
+    };
+
+    saveProfile(newProfile);
+
+    // Save as "last result" for immediate viewing on ResultsPage
     localStorage.setItem("lastTestResult", JSON.stringify({
       answers,
       scores,
       timestamp: Date.now(),
-      personName: "Subject Alpha"
+      personName: name
     }));
 
     setTimeout(() => {
@@ -51,6 +75,51 @@ export default function TestPage() {
 
   const currentAnswer = answers.find((a) => a.questionId === currentQuestion.id)?.value;
   const isComplete = answers.length === questions.length;
+
+  if (isDone) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 animate-in fade-in">
+         <div className="max-w-md w-full bg-card border border-border rounded-[32px] p-8 shadow-xl space-y-6">
+            <div className="text-center space-y-2">
+              <h2 className="text-3xl font-serif text-primary">Mapping Complete</h2>
+              <p className="text-muted-foreground">Save this profile to your family library to enable dynamics analysis.</p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Name / Alias</label>
+                <input 
+                  type="text" 
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full bg-secondary/30 border border-border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="e.g. John, Mom, Partner"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Role</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {['Parent', 'Child', 'Partner', 'Friend'].map((r) => (
+                    <button
+                      key={r}
+                      onClick={() => setRole(r as any)}
+                      className={`p-2 rounded-lg text-sm font-medium transition-all ${role === r ? 'bg-primary text-primary-foreground' : 'bg-secondary/50 text-foreground hover:bg-secondary'}`}
+                    >
+                      {r}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <Button onClick={handleSaveProfile} disabled={!name || isSubmitting} className="w-full h-12 text-lg">
+              {isSubmitting ? "Saving..." : "Save Profile & View Results"} <Save className="ml-2 w-4 h-4" />
+            </Button>
+         </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col p-6 items-center justify-center animate-in fade-in duration-500">
@@ -89,8 +158,8 @@ export default function TestPage() {
             Previous
           </Button>
           {currentIdx === questions.length - 1 ? (
-            <Button onClick={handleSubmit} disabled={!isComplete || isSubmitting} className="px-10">
-              {isSubmitting ? "Synthesizing..." : "Finish Mapping"}
+            <Button onClick={handleComplete} disabled={!isComplete} className="px-10">
+              Complete Assessment
             </Button>
           ) : (
             <Button variant="secondary" onClick={() => setCurrentIdx(currentIdx + 1)} disabled={!currentAnswer}>
