@@ -1,5 +1,5 @@
-
-import React from "https://esm.sh/react@19";
+// RadarChart.tsx
+import React from "react";
 import { DomainScore } from '../types.ts';
 
 interface RadarChartProps {

@@ -1,10 +1,9 @@
-
 // LearnPage.tsx
-import React from "https://esm.sh/react@19";
-import { Link } from "https://esm.sh/wouter@3.9.0";
+import React from "react";
+import { Link } from "wouter";
 import { TRAIT_DETAILS } from "../lib/content.ts";
 import { Button } from "../components/ui/button.tsx";
-import { ArrowLeft, BookOpen, Activity } from "https://esm.sh/lucide-react@0.562.0";
+import { ArrowLeft, BookOpen, Activity } from "lucide-react";
 
 export default function LearnPage() {
   return (

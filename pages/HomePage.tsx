@@ -1,8 +1,8 @@
-
-import React from 'https://esm.sh/react@19';
-import { Link } from 'https://esm.sh/wouter@3.9.0';
+// HomePage.tsx
+import React from "react";
+import { Link } from "wouter";
 import { Button } from "../components/ui/button.tsx";
-import { ArrowRight, Brain, Activity, Users, BookOpen } from "https://esm.sh/lucide-react@0.562.0";
+import { ArrowRight, Brain, Activity, Users, BookOpen } from "lucide-react";
 
 export default function HomePage() {
   return (

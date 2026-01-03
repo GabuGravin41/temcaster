@@ -1,11 +1,10 @@
-
 // TestPage.tsx
-import React, { useState } from "https://esm.sh/react@19";
-import { useLocation } from "https://esm.sh/wouter@3.9.0";
+import React, { useState } from "react";
+import { useLocation } from "wouter";
 import { getQuestions, calculateScores } from "../lib/scoring.ts";
 import { saveProfile, generateId } from "../services/storage.ts";
 import { Button } from "../components/ui/button.tsx";
-import { ArrowLeft, Save, User, Users } from "https://esm.sh/lucide-react@0.562.0";
+import { ArrowLeft, Save, User, Users } from "lucide-react";
 import { Answer, Profile } from "../types.ts";
 
 export default function TestPage() {

@@ -1,8 +1,7 @@
-
 // ResultsChart.tsx
-import React, { useState } from "https://esm.sh/react@19";
+import React, { useState } from "react";
 import { DomainScore } from '../types.ts';
-import { ChevronDown, ChevronRight, BarChart } from "https://esm.sh/lucide-react@0.562.0";
+import { ChevronDown, ChevronRight, BarChart } from "lucide-react";
 
 interface ResultsChartProps {
   scores: DomainScore[];

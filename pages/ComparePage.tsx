@@ -1,4 +1,3 @@
-
 // ComparePage.tsx
 import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
@@ -8,7 +7,7 @@ import { analyzeRelationship } from "../services/geminiService.ts";
 import { ResultsChart } from "../components/ResultsChart.tsx";
 import { RadarChart } from "../components/RadarChart.tsx";
 import { Button } from "../components/ui/button.tsx";
-import { BrainCircuit, ArrowLeft, Zap, Dna, Plus, Download, AlertCircle, RefreshCw } from "lucide-react";
+import { BrainCircuit, ArrowLeft, Zap, Dna, Plus, Download, AlertCircle, RefreshCw, Copy, UserPlus } from "lucide-react";
 
 export default function ComparePage() {
   const [_, setLocation] = useLocation();
@@ -22,6 +21,7 @@ export default function ComparePage() {
   const [showImport, setShowImport] = useState(false);
   const [importString, setImportString] = useState("");
   const [importError, setImportError] = useState("");
+  const [importSuccess, setImportSuccess] = useState("");
 
   const [aiAnalysis, setAiAnalysis] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -41,16 +41,21 @@ export default function ComparePage() {
 
   const handleImport = () => {
     setImportError("");
+    setImportSuccess("");
     if (!importString) return;
     
     const imported = decodeAndSaveProfile(importString);
     if (imported) {
         loadProfiles();
         setSelectedIdB(imported.id); // Auto-select the imported friend
-        setShowImport(false);
+        setImportSuccess(`Successfully imported ${imported.name}`);
         setImportString("");
+        setTimeout(() => {
+          setShowImport(false);
+          setImportSuccess("");
+        }, 1500);
     } else {
-        setImportError("Invalid profile string. Please check and try again.");
+        setImportError("Invalid profile code. Please check and try again.");
     }
   };
 
@@ -70,9 +75,11 @@ export default function ComparePage() {
     } catch (e: any) {
       console.error(e);
       if (e.message === "MISSING_API_KEY") {
-        setAnalysisError("System Configuration Error: API_KEY is missing. Please configure your Vercel environment variables.");
+        setAnalysisError("Configuration Error: API_KEY is missing. Please add it to your Vercel Environment Variables.");
+      } else if (e.message && e.message.includes("404")) {
+         setAnalysisError("AI Service unavailable (404). Please try again later.");
       } else {
-        setAnalysisError("Analysis failed. The AI service may be temporarily unavailable.");
+        setAnalysisError("Analysis failed. The AI service may be busy or temporarily unavailable.");
       }
     } finally {
       setIsAnalyzing(false);
@@ -101,21 +108,22 @@ export default function ComparePage() {
           </div>
         </div>
 
-        {/* Import Modal Area */}
+        {/* Import Modal Area - Conditional or visible if requested */}
         {showImport && (
-            <div className="bg-card border border-border p-6 rounded-2xl shadow-xl max-w-2xl mx-auto animate-in fade-in slide-in-from-top-4">
-                <h3 className="text-xl font-serif mb-2">Import Profile</h3>
-                <p className="text-muted-foreground text-sm mb-4">Paste the shared code string here to add a friend, partner, or family member to your library for comparison.</p>
+            <div className="bg-card border border-border p-6 rounded-2xl shadow-xl max-w-2xl mx-auto animate-in fade-in slide-in-from-top-4 relative z-10">
+                <h3 className="text-xl font-serif mb-2">Import Profile Code</h3>
+                <p className="text-muted-foreground text-sm mb-4">Paste the character code shared by a friend to add them to your comparison list.</p>
                 <textarea 
                     className="w-full h-24 bg-secondary/30 rounded-xl border border-border p-3 font-mono text-xs focus:ring-2 focus:ring-primary/50 outline-none resize-none"
-                    placeholder="Paste code starting with eyJ..."
+                    placeholder="Paste code here (e.g. eyJpZCI6...)"
                     value={importString}
                     onChange={(e) => setImportString(e.target.value)}
                 />
-                {importError && <p className="text-red-500 text-xs mt-2">{importError}</p>}
+                {importError && <p className="text-red-500 text-xs mt-2 font-medium flex items-center"><AlertCircle className="w-3 h-3 mr-1"/> {importError}</p>}
+                {importSuccess && <p className="text-green-600 text-xs mt-2 font-medium flex items-center"><UserPlus className="w-3 h-3 mr-1"/> {importSuccess}</p>}
                 <div className="flex justify-end mt-4 gap-2">
-                    <Button variant="ghost" onClick={() => setShowImport(false)}>Cancel</Button>
-                    <Button onClick={handleImport}>Import & Select</Button>
+                    <Button variant="ghost" onClick={() => setShowImport(false)}>Close</Button>
+                    <Button onClick={handleImport}>Import Profile</Button>
                 </div>
             </div>
         )}
@@ -131,12 +139,22 @@ export default function ComparePage() {
 
         {/* Profile Selectors */}
         {profiles.length < 2 ? (
-           <div className="bg-yellow-50 border border-yellow-200 p-8 rounded-2xl text-center">
-             <h3 className="text-xl font-serif text-yellow-800 mb-2">Insufficient Data</h3>
-             <p className="text-yellow-700 mb-4">You need at least two profiles to compare. Import a friend's code or take the test again.</p>
-             <Link href="/test">
-               <Button>Take Test & Save Profile</Button>
-             </Link>
+           <div className="bg-secondary/20 border border-border p-10 rounded-[32px] text-center space-y-6">
+             <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto text-primary">
+                <UserPlus className="w-8 h-8" />
+             </div>
+             <div className="space-y-2">
+                <h3 className="text-xl font-serif text-foreground">Build Your Lab</h3>
+                <p className="text-muted-foreground max-w-md mx-auto">You need at least two profiles to run a comparison. You can take the test again for someone else, or import their code.</p>
+             </div>
+             <div className="flex flex-col sm:flex-row justify-center gap-4">
+                <Link href="/test">
+                  <Button size="lg" className="rounded-full px-8">Take Test for Someone</Button>
+                </Link>
+                <Button size="lg" variant="outline" className="rounded-full px-8" onClick={() => setShowImport(true)}>
+                  <Download className="mr-2 w-4 h-4" /> Import Code
+                </Button>
+             </div>
            </div>
         ) : (
           <div className="grid md:grid-cols-2 gap-6 bg-secondary/30 p-6 rounded-[32px] border border-border/50">
@@ -156,17 +174,22 @@ export default function ComparePage() {
             </div>
             <div className="space-y-2">
                <label className="text-xs font-bold uppercase tracking-widest text-accent">Person B</label>
-               <select 
-                 className="w-full p-3 rounded-xl border border-border bg-card"
-                 value={selectedIdB}
-                 onChange={(e) => {
-                   setSelectedIdB(e.target.value);
-                   setAiAnalysis(null);
-                   setAnalysisError(null);
-                 }}
-               >
-                 {profiles.map(p => <option key={p.id} value={p.id}>{p.name} ({p.role})</option>)}
-               </select>
+               <div className="flex gap-2">
+                   <select 
+                     className="w-full p-3 rounded-xl border border-border bg-card"
+                     value={selectedIdB}
+                     onChange={(e) => {
+                       setSelectedIdB(e.target.value);
+                       setAiAnalysis(null);
+                       setAnalysisError(null);
+                     }}
+                   >
+                     {profiles.map(p => <option key={p.id} value={p.id}>{p.name} ({p.role})</option>)}
+                   </select>
+                   <Button variant="outline" className="h-full aspect-square p-0 rounded-xl" onClick={() => setShowImport(true)} title="Import new profile">
+                       <Plus className="w-5 h-5 text-muted-foreground" />
+                   </Button>
+               </div>
             </div>
           </div>
         )}

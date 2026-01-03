@@ -1,4 +1,3 @@
-
 // geminiService.ts
 import { GoogleGenAI, Type } from "@google/genai";
 import { DomainScore, AnalysisResult } from "../types.ts";
@@ -8,17 +7,25 @@ export const analyzeRelationship = async (
   profileB: { name: string; scores: DomainScore[]; role: string }
 ): Promise<AnalysisResult> => {
   
-  // Safety check for process.env existence in browser environments
+  // Robustly attempt to retrieve the API key
   let apiKey = "";
   try {
+    // Check if process is defined (node/bundled env)
     if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
       apiKey = process.env.API_KEY;
     }
   } catch (e) {
-    console.warn("Could not access process.env");
+    // Ignore ReferenceErrors if process is missing
+  }
+
+  // Fallback check: sometimes bundlers just replace the string process.env.API_KEY directly
+  // regardless of the 'process' object existence check above.
+  if (!apiKey && typeof process !== 'undefined' && process.env) {
+      apiKey = process.env.API_KEY || "";
   }
 
   if (!apiKey) {
+    console.error("API_KEY not found in environment variables.");
     throw new Error("MISSING_API_KEY");
   }
   

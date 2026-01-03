@@ -1,14 +1,13 @@
-
 // ResultsPage.tsx
-import React, { useEffect, useState } from "https://esm.sh/react@19";
-import { Link, useLocation } from "https://esm.sh/wouter@3.9.0";
+import React, { useEffect, useState } from "react";
+import { Link, useLocation } from "wouter";
 import { TestResult, Profile } from "../types.ts";
 import { TRAIT_DETAILS } from "../lib/content.ts";
 import { encodeProfile, getProfiles } from "../services/storage.ts";
 import { ResultsChart } from "../components/ResultsChart.tsx";
 import { Button } from "../components/ui/button.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.tsx";
-import { ArrowLeft, Users, ChevronRight, ChevronDown, BookOpen, Share2, Copy, Check } from "https://esm.sh/lucide-react@0.562.0";
+import { ArrowLeft, Users, ChevronRight, ChevronDown, BookOpen, Share2, Copy, Check } from "lucide-react";
 
 export default function ResultsPage() {
   const [_, setLocation] = useLocation();

@@ -1,7 +1,6 @@
-
 // App.tsx
-import React from "https://esm.sh/react@19";
-import { Route, Switch } from "https://esm.sh/wouter@3.9.0";
+import React from "react";
+import { Route, Switch, Link } from "wouter";
 import Header from "./components/Header.tsx";
 import HomePage from "./pages/HomePage.tsx";
 import TestPage from "./pages/TestPage.tsx";
@@ -26,9 +25,11 @@ export default function App() {
               <div>
                 <h1 className="text-4xl font-serif mb-4">404</h1>
                 <p className="text-muted-foreground mb-8 italic">The map is not the territory.</p>
-                <Button variant="outline" className="rounded-full cursor-pointer">
-                  Return Home
-                </Button>
+                <Link href="/">
+                  <Button variant="outline" className="rounded-full cursor-pointer">
+                    Return Home
+                  </Button>
+                </Link>
               </div>
             </div>
           </Route>

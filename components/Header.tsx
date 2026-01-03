@@ -1,8 +1,7 @@
-
 // Header.tsx
-import React from "https://esm.sh/react@19";
-import { Link, useLocation } from "https://esm.sh/wouter@3.9.0";
-import { Brain, BookOpen, Users, BarChart3 } from "https://esm.sh/lucide-react@0.562.0";
+import React from "react";
+import { Link, useLocation } from "wouter";
+import { Brain, BookOpen, Users, BarChart3 } from "lucide-react";
 import { Button } from "./ui/button.tsx";
 
 const Header: React.FC = () => {

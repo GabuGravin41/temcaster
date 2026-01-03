@@ -1,6 +1,6 @@
 // card.tsx
-import React from "https://esm.sh/react@19";
-import { twMerge } from "https://esm.sh/tailwind-merge@3.4.0";
+import React from "react";
+import { twMerge } from "tailwind-merge";
 
 export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (

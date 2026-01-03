@@ -1,7 +1,7 @@
 // button.tsx
-import React from "https://esm.sh/react@19";
-import { clsx } from "https://esm.sh/clsx@2.1.1";
-import { twMerge } from "https://esm.sh/tailwind-merge@3.4.0";
+import React from "react";
+import { clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
@@ -11,6 +11,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   type?: "button" | "submit" | "reset";
   onClick?: React.MouseEventHandler<HTMLButtonElement>;
   disabled?: boolean;
+  title?: string;
 }
 
 export function Button({ 
