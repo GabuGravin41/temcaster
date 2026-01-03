@@ -1,100 +1,73 @@
 // geminiService.ts
 import { GoogleGenAI, Type } from "@google/genai";
-import { DomainScore, AnalysisResult } from "../types.ts";
+import { DomainScore, AnalysisResult, Profile, ChatMessage } from "../types.ts";
 
 export const analyzeRelationship = async (
   profileA: { name: string; scores: DomainScore[]; role: string },
   profileB: { name: string; scores: DomainScore[]; role: string }
 ): Promise<AnalysisResult> => {
-  
-  // Robustly attempt to retrieve the API key
-  let apiKey = "";
-  try {
-    // Check if process is defined (node/bundled env)
-    if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
-      apiKey = process.env.API_KEY;
-    }
-  } catch (e) {
-    // Ignore ReferenceErrors if process is missing
-  }
-
-  // Fallback check: sometimes bundlers just replace the string process.env.API_KEY directly
-  // regardless of the 'process' object existence check above.
-  if (!apiKey && typeof process !== 'undefined' && process.env) {
-      apiKey = process.env.API_KEY || "";
-  }
-
-  if (!apiKey) {
-    console.error("API_KEY not found in environment variables.");
-    throw new Error("MISSING_API_KEY");
-  }
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) throw new Error("MISSING_API_KEY");
   
   const ai = new GoogleGenAI({ apiKey });
 
   const prompt = `
-    You are an expert Behavioral Neuroscientist and Clinical Psychologist specializing in the Big Five Aspect Scale (IPIP-NEO-PI-R).
+    Analyze the personality dynamics between Person A (${profileA.name}, ${profileA.role}) and Person B (${profileB.name}, ${profileB.role}).
     
-    Analyze the dynamics between these two individuals based on their psychometric profiles.
-    
-    **Person A** (Role: ${profileA.role}, Name: ${profileA.name}):
-    ${JSON.stringify(profileA.scores.map(s => ({ domain: s.domain, score: s.score, max: s.maxScore, level: s.level })))}
-    
-    **Person B** (Role: ${profileB.role}, Name: ${profileB.name}):
-    ${JSON.stringify(profileB.scores.map(s => ({ domain: s.domain, score: s.score, max: s.maxScore, level: s.level })))}
+    A Scores: ${JSON.stringify(profileA.scores.map(s => ({ d: s.domain, p: s.percentage })))}
+    B Scores: ${JSON.stringify(profileB.scores.map(s => ({ d: s.domain, p: s.percentage })))}
 
-    **Task:**
-    1. Identify the *single most critical* friction point caused by divergent traits (e.g., High Orderliness vs Low Orderliness, or High Neuroticism vs High Extraversion).
-    2. Explain the **Neuroscience/Psychological Mechanism**: Why do their brains process the world differently in this specific area? (e.g., talk about amygdala sensitivity, prefrontal cortex inhibition, dopamine reward circuits).
-    3. Provide **Actionable Strategies**: Concrete "If/Then" behavioral adjustments for both parties.
-
-    **Output Requirements:**
-    Return ONLY valid JSON matching the schema.
+    Identify the most critical friction point, explain the psychological mechanism, and provide if/then protocols.
   `;
 
   const responseSchema = {
     type: Type.OBJECT,
     properties: {
-      overview: {
-        type: Type.STRING,
-        description: "A professional, concise executive summary of the relationship dynamic.",
-      },
-      frictionPoints: {
-        type: Type.ARRAY,
-        items: { type: Type.STRING },
-        description: "3 specific scenarios where their traits will clash (e.g., 'Planning a vacation', 'Handling a crisis').",
-      },
-      scientificContext: {
-        type: Type.STRING,
-        description: "The 'Mechanism'. Explain the neurological or psychological divergence. Use scientific terms (e.g., 'cortical arousal', 'threat detection system').",
-      },
-      strategies: {
-        type: Type.ARRAY,
-        items: { type: Type.STRING },
-        description: "3 highly specific, actionable behavioral protocols. Format: 'When [Event] happens, [Person] should [Action] because [Reason]'.",
-      },
+      overview: { type: Type.STRING },
+      frictionPoints: { type: Type.ARRAY, items: { type: Type.STRING } },
+      scientificContext: { type: Type.STRING },
+      strategies: { type: Type.ARRAY, items: { type: Type.STRING } },
     },
     required: ["overview", "frictionPoints", "scientificContext", "strategies"],
   };
 
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview", 
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: responseSchema,
-      },
-    });
+  const response = await ai.models.generateContent({
+    model: "gemini-3-pro-preview", 
+    contents: prompt,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: responseSchema,
+    },
+  });
 
-    const text = response.text;
-    if (!text) throw new Error("No response from AI");
-    
-    return JSON.parse(text) as AnalysisResult;
-  } catch (error: any) {
-    console.error("Gemini Analysis Error:", error);
-    if (error.message && error.message.includes("404")) {
-         throw new Error("Model not found. Please check model name.");
+  return JSON.parse(response.text!) as AnalysisResult;
+};
+
+export const chatAboutProfiles = async (
+  profiles: Profile[],
+  history: ChatMessage[],
+  userMessage: string
+): Promise<string> => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) throw new Error("MISSING_API_KEY");
+  
+  const ai = new GoogleGenAI({ apiKey });
+  
+  const context = profiles.map(p => 
+    `${p.name} (${p.role}): ${p.scores.map(s => `${s.domain} ${s.percentage}%`).join(', ')}`
+  ).join('\n');
+
+  const chat = ai.chats.create({
+    model: 'gemini-3-flash-preview',
+    config: {
+      systemInstruction: `You are the Personality Dynamics Lab advisor. Use the Big Five data provided to help users understand relationship friction and compatibility. 
+      Profiles in current comparison:
+      ${context}
+      
+      Provide concise, empathetic, and scientifically grounded advice. Focus on the data gaps between these people.`
     }
-    throw error;
-  }
+  });
+
+  const result = await chat.sendMessage({ message: userMessage });
+  return result.text || "I'm having trouble analyzing that. Could you rephrase?";
 };

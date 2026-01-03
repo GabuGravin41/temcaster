@@ -1,4 +1,4 @@
-
+// types.ts
 export type Domain = 'Openness' | 'Conscientiousness' | 'Extraversion' | 'Agreeableness' | 'Neuroticism';
 
 export interface FacetScore {
@@ -29,6 +29,7 @@ export interface Profile {
   role: 'Self' | 'Parent' | 'Child' | 'Partner' | 'Friend' | 'Other';
   scores: DomainScore[];
   timestamp: number;
+  isDemo?: boolean;
 }
 
 export interface TestResult {
@@ -43,6 +44,11 @@ export interface AnalysisResult {
   frictionPoints: string[];
   scientificContext: string;
   strategies: string[];
+}
+
+export interface ChatMessage {
+  role: 'user' | 'model';
+  text: string;
 }
 
 export const DOMAIN_DESCRIPTIONS: Record<string, string> = {

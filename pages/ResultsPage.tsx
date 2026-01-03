@@ -3,11 +3,11 @@ import React, { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { TestResult, Profile } from "../types.ts";
 import { TRAIT_DETAILS } from "../lib/content.ts";
-import { encodeProfile, getProfiles } from "../services/storage.ts";
+import { encodeProfile, getProfiles, exportLibrary, importLibrary } from "../services/storage.ts";
 import { ResultsChart } from "../components/ResultsChart.tsx";
 import { Button } from "../components/ui/button.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.tsx";
-import { ArrowLeft, Users, ChevronRight, ChevronDown, BookOpen, Share2, Copy, Check } from "lucide-react";
+import { ArrowLeft, Users, ChevronRight, ChevronDown, Share2, Copy, Check, Download, Upload } from "lucide-react";
 
 export default function ResultsPage() {
   const [_, setLocation] = useLocation();
@@ -18,12 +18,10 @@ export default function ResultsPage() {
   const [profileIdString, setProfileIdString] = useState("");
 
   useEffect(() => {
-    // Try to load from lastTestResult first
     const saved = localStorage.getItem("lastTestResult");
     if (saved) {
       setResult(JSON.parse(saved));
     } else {
-      // If no last result, check if we have any profiles, default to the last one
       const profiles = getProfiles();
       if (profiles.length > 0) {
         const last = profiles[profiles.length - 1];
@@ -41,7 +39,6 @@ export default function ResultsPage() {
 
   useEffect(() => {
     if (result) {
-        // Find the profile object to encode
         const profiles = getProfiles();
         const profile = profiles.find(p => p.timestamp === result.timestamp) || {
             id: 'temp',
@@ -54,34 +51,40 @@ export default function ResultsPage() {
     }
   }, [result]);
 
+  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const json = e.target?.result as string;
+      if (importLibrary(json)) {
+        alert("Library imported successfully!");
+        window.location.reload();
+      } else {
+        alert("Invalid backup file.");
+      }
+    };
+    reader.readAsText(file);
+  };
+
   if (!result) return null;
-
-  const toggleExpand = (domain: string) => {
-    setExpandedDomain(expandedDomain === domain ? null : domain);
-  };
-
-  const handleCopy = () => {
-    navigator.clipboard.writeText(profileIdString);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   return (
     <div className="min-h-screen bg-background p-6 md:p-12 animate-in fade-in duration-700">
       <div className="max-w-4xl mx-auto space-y-12">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <Link href="/">
-            <Button variant="ghost" className="-ml-4">
+            <Button variant="ghost" className="-ml-4 text-xs">
               <ArrowLeft className="mr-2 w-4 h-4" /> Home
             </Button>
           </Link>
           <div className="flex gap-2">
-            <Button variant="outline" className="rounded-full" onClick={() => setShowShare(!showShare)}>
-                <Share2 className="mr-2 w-4 h-4" /> Share Profile
+            <Button variant="outline" className="rounded-full h-9 text-xs" onClick={() => setShowShare(!showShare)}>
+                <Share2 className="mr-2 w-3 h-3" /> Share Code
             </Button>
             <Link href="/compare">
-                <Button className="bg-primary text-white shadow-lg shadow-primary/20 rounded-full group">
-                <Users className="mr-2 w-4 h-4" /> Run Dynamics Analysis <ChevronRight className="ml-1 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                <Button className="bg-primary text-white rounded-full h-9 text-xs group shadow-lg shadow-primary/10">
+                <Users className="mr-2 w-3 h-3" /> Analyze Dynamics <ChevronRight className="ml-1 w-3 h-3 group-hover:translate-x-1 transition-transform" />
                 </Button>
             </Link>
           </div>
@@ -89,18 +92,22 @@ export default function ResultsPage() {
 
         {showShare && (
             <div className="bg-card border border-border p-6 rounded-2xl shadow-lg animate-in slide-in-from-top-4">
-                <h3 className="font-serif text-lg mb-2">Share this Profile</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                    Copy this code and send it to a friend. They can paste it in the "Compare" section to see how your personalities interact.
+                <h3 className="font-serif text-lg mb-2">Unique Character Code</h3>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest mb-4">
+                    Send this code to a friend for cross-referencing in their Lab.
                 </p>
                 <div className="flex gap-2">
                     <input 
                         type="text" 
                         readOnly 
                         value={profileIdString} 
-                        className="flex-1 bg-secondary/50 border border-border rounded-lg px-3 text-xs font-mono text-muted-foreground truncate"
+                        className="flex-1 bg-secondary/30 border border-border rounded-lg px-3 text-[10px] font-mono text-muted-foreground truncate"
                     />
-                    <Button onClick={handleCopy} variant="secondary">
+                    <Button onClick={() => {
+                        navigator.clipboard.writeText(profileIdString);
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                    }} variant="secondary" className="h-9 w-9 p-0">
                         {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                     </Button>
                 </div>
@@ -108,15 +115,37 @@ export default function ResultsPage() {
         )}
 
         <div className="space-y-4">
-          <h1 className="text-4xl md:text-5xl font-serif font-medium tracking-tight">Psychometric Profile: <span className="text-primary italic">{result.personName}</span></h1>
-          <p className="text-lg text-muted-foreground">Neural architecture summary based on the 120-question IPIP-NEO-PI-R scale.</p>
+          <h1 className="text-4xl md:text-5xl font-serif font-medium tracking-tight">Profile Synthesis: <span className="text-primary italic">{result.personName}</span></h1>
+          <p className="text-lg text-muted-foreground">Psychometric mapping based on the 120-item IPIP-NEO inventory.</p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-12">
-          <Card className="border-none shadow-none bg-secondary/30 p-4 rounded-[40px] h-fit">
-            <CardHeader><CardTitle className="text-xl">Visualization</CardTitle></CardHeader>
-            <CardContent><ResultsChart scores={result.scores} /></CardContent>
-          </Card>
+          <div className="space-y-8">
+            <Card className="border border-border/40 shadow-sm p-4 rounded-[40px] h-fit">
+              <CardHeader className="pb-2"><CardTitle className="text-xs uppercase tracking-widest text-muted-foreground">Domain Intensity</CardTitle></CardHeader>
+              <CardContent><ResultsChart scores={result.scores} /></CardContent>
+            </Card>
+
+            <div className="bg-secondary/30 rounded-[32px] p-6 space-y-4">
+               <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Lab Management</h3>
+               <div className="grid grid-cols-2 gap-3">
+                  <Button variant="outline" className="text-[10px] h-9" onClick={exportLibrary}>
+                    <Download className="w-3 h-3 mr-2" /> Backup Lab
+                  </Button>
+                  <div className="relative">
+                    <input 
+                      type="file" 
+                      accept=".json" 
+                      onChange={handleImportFile}
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                    />
+                    <Button variant="outline" className="text-[10px] h-9 w-full">
+                      <Upload className="w-3 h-3 mr-2" /> Restore Lab
+                    </Button>
+                  </div>
+               </div>
+            </div>
+          </div>
 
           <div className="space-y-6">
             {result.scores.map((score) => {
@@ -128,53 +157,41 @@ export default function ResultsPage() {
                 <div key={score.domain} className={`space-y-4 transition-all duration-300 ${isExpanded ? 'bg-card p-6 rounded-[24px] border border-border shadow-sm' : ''}`}>
                   <div 
                     className="cursor-pointer group"
-                    onClick={() => toggleExpand(score.domain)}
+                    onClick={() => setExpandedDomain(isExpanded ? null : score.domain)}
                   >
                     <div className="flex justify-between items-center mb-2">
                       <h3 className="font-serif font-bold text-lg group-hover:text-primary transition-colors">{score.domain}</h3>
                       <div className="flex items-center gap-3">
                          <span className="text-primary font-mono text-xs bg-primary/10 px-2 py-1 rounded">{score.level} ({score.percentage}%)</span>
-                         <ChevronDown className={`w-4 h-4 text-muted-foreground transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+                         <ChevronDown className={`w-3 h-3 text-muted-foreground transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
                       </div>
                     </div>
-                    <div className="h-2 w-full bg-secondary/50 rounded-full overflow-hidden mb-2">
+                    <div className="h-1.5 w-full bg-secondary/50 rounded-full overflow-hidden mb-2">
                       <div 
                         className="h-full bg-primary transition-all duration-1000" 
                         style={{ width: `${score.percentage}%` }} 
                       />
                     </div>
                     {!isExpanded && (
-                      <p className="text-xs text-muted-foreground leading-relaxed italic line-clamp-2">
-                         {content.shortDesc} <span className="text-primary not-italic font-medium ml-1">Read more</span>
+                      <p className="text-[11px] text-muted-foreground italic line-clamp-1">
+                         {content.shortDesc}
                       </p>
                     )}
                   </div>
 
-                  {/* Expanded Content */}
                   {isExpanded && (
                     <div className="animate-in fade-in slide-in-from-top-2 pt-2 space-y-4">
-                      <p className="text-sm leading-relaxed text-foreground/90 border-l-2 border-primary/20 pl-4">
+                      <p className="text-xs leading-relaxed text-foreground/80 border-l border-primary/20 pl-4">
                         {content.fullDesc}
                       </p>
                       
-                      <div className="bg-secondary/30 rounded-xl p-4">
-                        <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">Core Facets</h4>
-                        <div className="grid grid-cols-1 gap-2">
-                          {content.facets.map(f => (
-                            <div key={f.name} className="flex gap-2 items-start text-xs">
-                              <span className="font-semibold text-primary shrink-0">{f.name}:</span>
-                              <span className="text-muted-foreground">{f.description}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      
-                      <div className="flex justify-end">
-                         <Link href="/learn">
-                            <Button size="sm" variant="ghost" className="text-xs h-8">
-                               View Full {score.domain} Guide <ChevronRight className="w-3 h-3 ml-1" />
-                            </Button>
-                         </Link>
+                      <div className="grid grid-cols-1 gap-2">
+                        {content.facets.map(f => (
+                          <div key={f.name} className="flex gap-2 items-start text-[10px] leading-snug">
+                            <span className="font-bold text-primary shrink-0">{f.name}:</span>
+                            <span className="text-muted-foreground">{f.description}</span>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}

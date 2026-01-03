@@ -1,4 +1,4 @@
-<!-- index.html (updated importmap for robustness) -->
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -19,19 +19,19 @@
             mono: ['JetBrains Mono', 'monospace'],
           },
           colors: {
-            background: 'hsl(210 20% 98%)',
-            foreground: 'hsl(215 25% 27%)',
-            card: 'hsl(0 0% 100%)',
-            'card-foreground': 'hsl(215 25% 27%)',
-            primary: 'hsl(215 40% 30%)',
-            'primary-foreground': 'hsl(0 0% 100%)',
-            secondary: 'hsl(210 20% 90%)',
-            'secondary-foreground': 'hsl(215 40% 30%)',
-            accent: 'hsl(200 60% 50%)',
-            'accent-foreground': 'hsl(0 0% 100%)',
-            muted: 'hsl(210 20% 90%)',
-            'muted-foreground': 'hsl(215 20% 50%)',
-            border: 'hsl(215 20% 85%)',
+            background: '#f9fafb',
+            foreground: '#1e293b',
+            card: '#ffffff',
+            'card-foreground': '#1e293b',
+            primary: '#1e40af', // Clinical Blue
+            'primary-foreground': '#ffffff',
+            secondary: '#f1f5f9',
+            'secondary-foreground': '#1e40af',
+            accent: '#0891b2', // Deep Cyan
+            'accent-foreground': '#ffffff',
+            muted: '#f8fafc',
+            'muted-foreground': '#64748b',
+            border: '#e2e8f0',
           }
         }
       }
@@ -39,13 +39,13 @@
   </script>
   <style>
     body {
-      background-color: hsl(210 20% 98%);
-      color: hsl(215 25% 27%);
+      background-color: #f9fafb;
+      color: #1e293b;
       margin: 0;
       -webkit-font-smoothing: antialiased;
     }
     .animate-in {
-      animation-duration: 700ms;
+      animation-duration: 600ms;
       animation-fill-mode: both;
     }
     .fade-in {
@@ -55,6 +55,11 @@
       from { opacity: 0; }
       to { opacity: 1; }
     }
+    /* Simple Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
   </style>
   <script type="importmap">
 {
@@ -64,7 +69,7 @@
     "wouter": "https://esm.sh/wouter@3.3.1",
     "clsx": "https://esm.sh/clsx@2.1.1",
     "tailwind-merge": "https://esm.sh/tailwind-merge@2.3.0",
-    "lucide-react": "https://esm.sh/lucide-react@0.378.0",
+    "lucide-react": "https://esm.sh/lucide-react@0.460.0",
     "@google/genai": "https://esm.sh/@google/genai@0.2.1",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
     "react/": "https://esm.sh/react@^19.2.3/"
