@@ -55,6 +55,11 @@ export const getProfiles = (includeDemos = true): Profile[] => {
   return includeDemos ? [...DEMO_PROFILES, ...saved] : saved;
 };
 
+export const getProfileById = (id: string): Profile | null => {
+  const all = getProfiles();
+  return all.find(p => p.id === id) || null;
+};
+
 export const deleteProfile = (id: string): void => {
   const existing = getProfiles(false);
   const updated = existing.filter(p => p.id !== id);

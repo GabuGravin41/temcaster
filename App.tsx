@@ -17,17 +17,20 @@ export default function App() {
         <Switch>
           <Route path="/" component={HomePage} />
           <Route path="/test" component={TestPage} />
+          {/* Support both the generic results view and specific profile view */}
           <Route path="/results" component={ResultsPage} />
+          <Route path="/results/:id" component={ResultsPage} />
           <Route path="/compare" component={ComparePage} />
           <Route path="/learn" component={LearnPage} />
           <Route>
             <div className="min-h-[70vh] flex items-center justify-center p-6 text-center">
-              <div>
-                <h1 className="text-4xl font-serif mb-4">404</h1>
+              <div className="animate-in fade-in zoom-in duration-500">
+                <h1 className="text-6xl font-serif mb-4 text-primary/20">404</h1>
+                <p className="text-xl font-serif mb-2">Page Not Found</p>
                 <p className="text-muted-foreground mb-8 italic">The map is not the territory.</p>
                 <Link href="/">
-                  <Button variant="outline" className="rounded-full cursor-pointer">
-                    Return Home
+                  <Button variant="outline" className="rounded-full cursor-pointer px-8">
+                    Return to Laboratory
                   </Button>
                 </Link>
               </div>

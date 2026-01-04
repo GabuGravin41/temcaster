@@ -1,16 +1,26 @@
 // ResultsChart.tsx
 import React, { useState } from "react";
 import { DomainScore } from '../types.ts';
-import { ChevronDown, ChevronRight, BarChart } from "lucide-react";
+import { ChevronDown, ChevronRight, BarChart, ExternalLink } from "lucide-react";
+import { Link } from "wouter";
 
 interface ResultsChartProps {
   scores: DomainScore[];
   scores2?: DomainScore[] | null;
   label1?: string;
   label2?: string;
+  profileId1?: string;
+  profileId2?: string;
 }
 
-export function ResultsChart({ scores, scores2, label1 = "Me", label2 = "Them" }: ResultsChartProps) {
+export function ResultsChart({ 
+  scores, 
+  scores2, 
+  label1 = "Me", 
+  label2 = "Them",
+  profileId1,
+  profileId2
+}: ResultsChartProps) {
   const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
 
   const toggleExpand = (domain: string) => {
@@ -90,12 +100,31 @@ export function ResultsChart({ scores, scores2, label1 = "Me", label2 = "Them" }
       })}
 
       {scores2 && (
-        <div className="flex justify-center gap-10 mt-6 text-[10px] font-bold uppercase tracking-[0.2em]">
-          <div className="flex items-center text-primary/80">
-            <div className="w-2.5 h-2.5 bg-primary/70 rounded-full mr-2"></div> {label1}
+        <div className="flex flex-col gap-3 mt-8">
+           <div className="flex justify-center gap-10 text-[10px] font-bold uppercase tracking-[0.2em]">
+            <div className="flex items-center text-primary/80">
+              <div className="w-2.5 h-2.5 bg-primary/70 rounded-full mr-2"></div> {label1}
+            </div>
+            <div className="flex items-center text-accent/80">
+              <div className="w-2.5 h-2.5 bg-accent/60 rounded-full mr-2"></div> {label2}
+            </div>
           </div>
-          <div className="flex items-center text-accent/80">
-            <div className="w-2.5 h-2.5 bg-accent/60 rounded-full mr-2"></div> {label2}
+          
+          <div className="flex justify-center gap-4">
+              {profileId1 && (
+                <Link href={`/results/${profileId1}`}>
+                  <Button variant="ghost" className="text-[9px] h-7 uppercase tracking-widest text-primary/60 hover:text-primary">
+                    View {label1} <ExternalLink className="ml-1 w-2.5 h-2.5" />
+                  </Button>
+                </Link>
+              )}
+              {profileId2 && (
+                <Link href={`/results/${profileId2}`}>
+                  <Button variant="ghost" className="text-[9px] h-7 uppercase tracking-widest text-accent/60 hover:text-accent">
+                    View {label2} <ExternalLink className="ml-1 w-2.5 h-2.5" />
+                  </Button>
+                </Link>
+              )}
           </div>
         </div>
       )}

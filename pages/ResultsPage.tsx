@@ -1,16 +1,17 @@
 // ResultsPage.tsx
 import React, { useEffect, useState } from "react";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useParams } from "wouter";
 import { TestResult, Profile } from "../types.ts";
 import { TRAIT_DETAILS } from "../lib/content.ts";
-import { encodeProfile, getProfiles, exportLibrary, importLibrary } from "../services/storage.ts";
+import { encodeProfile, getProfiles, exportLibrary, importLibrary, getProfileById } from "../services/storage.ts";
 import { ResultsChart } from "../components/ResultsChart.tsx";
 import { Button } from "../components/ui/button.tsx";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card.tsx";
-import { ArrowLeft, Users, ChevronRight, ChevronDown, Share2, Copy, Check, Download, Upload } from "lucide-react";
+import { ArrowLeft, Users, ChevronRight, ChevronDown, Share2, Copy, Check, Download, Upload, AlertCircle } from "lucide-react";
 
 export default function ResultsPage() {
   const [_, setLocation] = useLocation();
+  const params = useParams();
   const [result, setResult] = useState<TestResult | null>(null);
   const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
   const [showShare, setShowShare] = useState(false);
@@ -18,10 +19,30 @@ export default function ResultsPage() {
   const [profileIdString, setProfileIdString] = useState("");
 
   useEffect(() => {
+    // 1. If an ID is provided in the URL, prioritize that
+    if (params.id) {
+      const p = getProfileById(params.id);
+      if (p) {
+        setResult({
+          answers: [],
+          scores: p.scores,
+          timestamp: p.timestamp,
+          personName: p.name
+        });
+        return;
+      }
+    }
+
+    // 2. Fallback to last test result
     const saved = localStorage.getItem("lastTestResult");
     if (saved) {
-      setResult(JSON.parse(saved));
+      try {
+        setResult(JSON.parse(saved));
+      } catch (e) {
+        console.error("Malformed lastTestResult", e);
+      }
     } else {
+      // 3. Last resort: just get the most recent profile in the library
       const profiles = getProfiles();
       if (profiles.length > 0) {
         const last = profiles[profiles.length - 1];
@@ -35,7 +56,7 @@ export default function ResultsPage() {
         setLocation("/");
       }
     }
-  }, [setLocation]);
+  }, [params.id, setLocation]);
 
   useEffect(() => {
     if (result) {
@@ -67,15 +88,19 @@ export default function ResultsPage() {
     reader.readAsText(file);
   };
 
-  if (!result) return null;
+  if (!result) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="animate-pulse text-muted-foreground font-serif">Synthesizing Profile Data...</div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background p-6 md:p-12 animate-in fade-in duration-700">
       <div className="max-w-4xl mx-auto space-y-12">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <Link href="/">
+          <Link href="/compare">
             <Button variant="ghost" className="-ml-4 text-xs">
-              <ArrowLeft className="mr-2 w-4 h-4" /> Home
+              <ArrowLeft className="mr-2 w-4 h-4" /> Return to Map
             </Button>
           </Link>
           <div className="flex gap-2">
@@ -150,7 +175,13 @@ export default function ResultsPage() {
           <div className="space-y-6">
             {result.scores.map((score) => {
               const traitKey = score.domain.charAt(0);
-              const content = TRAIT_DETAILS[traitKey];
+              // CRITICAL FIX: Safe lookup with fallback to prevent crashes if key is missing
+              const content = TRAIT_DETAILS[traitKey] || {
+                title: score.domain,
+                shortDesc: "Standard psychometric trait observation.",
+                fullDesc: "This dimension measures core patterns of thought, feeling, and behavior.",
+                facets: []
+              };
               const isExpanded = expandedDomain === score.domain;
 
               return (
@@ -186,12 +217,18 @@ export default function ResultsPage() {
                       </p>
                       
                       <div className="grid grid-cols-1 gap-2">
-                        {content.facets.map(f => (
-                          <div key={f.name} className="flex gap-2 items-start text-[10px] leading-snug">
-                            <span className="font-bold text-primary shrink-0">{f.name}:</span>
-                            <span className="text-muted-foreground">{f.description}</span>
+                        {content.facets && content.facets.length > 0 ? (
+                          content.facets.map(f => (
+                            <div key={f.name} className="flex gap-2 items-start text-[10px] leading-snug">
+                              <span className="font-bold text-primary shrink-0">{f.name}:</span>
+                              <span className="text-muted-foreground">{f.description}</span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground italic">
+                            <AlertCircle className="w-3 h-3" /> Detailed facet data being processed...
                           </div>
-                        ))}
+                        )}
                       </div>
                     </div>
                   )}
