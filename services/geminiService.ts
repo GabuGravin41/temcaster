@@ -1,3 +1,4 @@
+
 // geminiService.ts
 import { GoogleGenAI, Type } from "@google/genai";
 import { DomainScore, AnalysisResult, Profile, ChatMessage, GroundingSource } from "../types.ts";
@@ -5,11 +6,8 @@ import { DomainScore, AnalysisResult, Profile, ChatMessage, GroundingSource } fr
 export const analyzeRelationship = async (
   selectedProfiles: Profile[]
 ): Promise<AnalysisResult> => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) throw new Error("API Key is missing. Please ensure it is configured in your environment.");
-  
-  // Re-instantiate to ensure fresh API key context
-  const ai = new GoogleGenAI({ apiKey });
+  // Always use process.env.API_KEY directly when initializing the client
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
   const isGroup = selectedProfiles.length > 2;
   const profilesSummary = selectedProfiles.map(p => ({
@@ -24,15 +22,12 @@ export const analyzeRelationship = async (
 
     TASK:
     1. Identify core friction points between specific individuals or the group as a whole.
-    2. PROVIDE SCIENTIFIC CONTEXT: Ground your advice in established Big Five psychological theory. Use footnotes or brief citations where appropriate.
-    3. GROUP INSIGHTS: ${isGroup ? 'Analyze the group "vibe" and identify clusters (e.g., who is the emotional outlier, who is the stabilizer).' : 'Analyze the primary relationship dyad.'}
-    4. STRATEGIES: Provide actionable If/Then protocols for better communication.
+    2. PROVIDE SCIENTIFIC CONTEXT: Ground your advice in established Big Five psychological theory.
+    3. GROUP INSIGHTS: ${isGroup ? 'Analyze the group "vibe" and identify clusters (e.g., who is the emotional outlier).' : 'Analyze the primary relationship dyad.'}
+    4. STRATEGIES: Provide actionable protocols for communication.
 
-    CRITICAL VALIDATION:
-    Double-check the data. Do not invent traits. If someone has 10% Neuroticism, describe them as highly emotionally stable.
-
-    GROUNDING:
-    Search for a credible psychological reference for one specific interaction pattern found in this data.
+    VALIDATION:
+    Do not invent traits. If someone has 10% Neuroticism, describe them as highly emotionally stable.
   `;
 
   const responseSchema = {
@@ -40,7 +35,7 @@ export const analyzeRelationship = async (
     properties: {
       overview: { type: Type.STRING },
       frictionPoints: { type: Type.ARRAY, items: { type: Type.STRING } },
-      groupDynamics: { type: Type.STRING, description: "Specific insights for 3+ people" },
+      groupDynamics: { type: Type.STRING },
       scientificContext: { type: Type.STRING },
       strategies: { type: Type.ARRAY, items: { type: Type.STRING } },
     },
@@ -54,13 +49,19 @@ export const analyzeRelationship = async (
       config: {
         responseMimeType: "application/json",
         responseSchema: responseSchema,
-        tools: [{ googleSearch: {} }],
+        // Removed googleSearch because Search Grounding output may not be in JSON format, 
+        // which could lead to JSON.parse() failures.
       },
     });
 
-    const parsed = JSON.parse(response.text!) as AnalysisResult;
+    const text = response.text;
+    if (!text) {
+      throw new Error("The model returned an empty response.");
+    }
+
+    const parsed = JSON.parse(text.trim()) as AnalysisResult;
     
-    // Extract grounding chunks as scientific citations
+    // Extract grounding chunks if any exist
     const sources: GroundingSource[] = [];
     const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
     if (chunks) {
@@ -77,8 +78,11 @@ export const analyzeRelationship = async (
     parsed.groundingSources = sources;
     return parsed;
   } catch (error: any) {
-    console.error("Gemini Analysis Error:", error);
-    throw new Error(error.message || "The AI analysis failed. Please check your API key.");
+    console.error("Gemini Analysis Error Detail:", error);
+    if (error.message?.includes("401") || error.message?.includes("API_KEY_INVALID")) {
+      throw new Error("Invalid API Key. Please verify the key in your environment settings.");
+    }
+    throw new Error(error.message || "The AI analysis failed. Please try again later.");
   }
 };
 
@@ -87,29 +91,25 @@ export const chatAboutProfiles = async (
   history: ChatMessage[],
   userMessage: string
 ): Promise<string> => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) throw new Error("API Key is missing.");
-  
-  const ai = new GoogleGenAI({ apiKey });
+  // Always use process.env.API_KEY directly when initializing the client
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const context = profiles.map(p => 
     `${p.name} (${p.role}): ${p.scores.map(s => `${s.domain} ${s.percentage}%`).join(', ')}`
   ).join('\n');
 
-  const chat = ai.chats.create({
-    model: 'gemini-3-flash-preview',
-    config: {
-      systemInstruction: `You are the Personality Dynamics Lab advisor. You provide concise, empathetic advice based on Big Five data.
-      Current Comparison:
-      ${context}
-      
-      Rules:
-      1. Reference specific percentages to stay grounded.
-      2. If asked about a clash, explain the distance (divergence) between scores.
-      3. Be scientifically accurate but warm.`
-    }
-  });
+  try {
+    const chat = ai.chats.create({
+      model: 'gemini-3-flash-preview',
+      config: {
+        systemInstruction: `You are the Personality Dynamics Lab advisor. You provide concise, empathetic advice based on Big Five data. Reference specific percentages. Current context: ${context}`
+      }
+    });
 
-  const result = await chat.sendMessage({ message: userMessage });
-  return result.text || "I'm having trouble processing that request.";
+    const result = await chat.sendMessage({ message: userMessage });
+    return result.text || "I was unable to synthesize a response.";
+  } catch (error: any) {
+    console.error("Chat Error:", error);
+    return `Error: ${error.message || "Connection failed."}`;
+  }
 };

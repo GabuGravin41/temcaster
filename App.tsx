@@ -35,8 +35,8 @@ export default function App() {
             {() => <PrivateRoute component={ResultsPage} />}
           </Route>
           <Route path="/results/:id">
-            {/* Added null check for params to satisfy TypeScript and prevent runtime errors */}
-            {(params) => params ? <PrivateRoute component={ResultsPage} id={params.id} /> : null}
+            {/* Fix: Added explicit type annotation for params to prevent 'never' inference from wouter */}
+            {(params: { id: string } | null) => params ? <PrivateRoute component={ResultsPage} id={params.id} /> : null}
           </Route>
           <Route path="/compare">
             {() => <PrivateRoute component={ComparePage} />}

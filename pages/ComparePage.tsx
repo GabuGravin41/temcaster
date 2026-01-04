@@ -8,7 +8,7 @@ import { ResultsChart } from "../components/ResultsChart.tsx";
 import { RadarChart } from "../components/RadarChart.tsx";
 import { FrictionHeatmap } from "../components/FrictionHeatmap.tsx";
 import { Button } from "../components/ui/button.tsx";
-import { BrainCircuit, ArrowLeft, Plus, RefreshCw, Send, MessageSquare, Users, ExternalLink } from "lucide-react";
+import { BrainCircuit, ArrowLeft, Plus, RefreshCw, Send, MessageSquare, Users, ExternalLink, AlertTriangle } from "lucide-react";
 
 /**
  * Localized Chat Component to prevent expensive re-renders 
@@ -36,8 +36,8 @@ const ChatAdvisor = memo(({ selectedProfiles }: { selectedProfiles: Profile[] })
     try {
       const reply = await chatAboutProfiles(selectedProfiles, chatHistory, msg);
       setChatHistory(prev => [...prev, { role: 'model', text: reply }]);
-    } catch (e) {
-      setChatHistory(prev => [...prev, { role: 'model', text: "Sorry, I can't process that right now." }]);
+    } catch (e: any) {
+      setChatHistory(prev => [...prev, { role: 'model', text: e.message || "Sorry, I can't process that right now." }]);
     } finally {
       setIsChatting(false);
     }
@@ -130,7 +130,7 @@ export default function ComparePage() {
       setAiAnalysis(result);
     } catch (e: any) {
       console.error(e);
-      setAnalysisError(e.message || "Analysis failed. Please check your API key.");
+      setAnalysisError(e.message || "The Laboratory AI encountered an error. Check your API settings.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -177,7 +177,7 @@ export default function ComparePage() {
         )}
 
         <div className="space-y-4">
-          <h1 className="text-4xl md:text-5xl font-serif font-medium tracking-tight">Family <span className="text-primary italic">Dynamics Map</span></h1>
+          <h1 className="text-4xl md:text-5xl font-serif font-medium tracking-tight text-foreground">Family <span className="text-primary italic">Dynamics Map</span></h1>
           <p className="text-lg text-muted-foreground">Select two or more profiles to map compatibility, clusters, and friction zones.</p>
         </div>
 
@@ -272,9 +272,14 @@ export default function ComparePage() {
               )}
 
               {analysisError && (
-                <div className="bg-red-50 text-red-600 p-6 rounded-3xl border border-red-100 text-xs flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center shrink-0">!</div>
-                  <p>{analysisError}</p>
+                <div className="bg-red-50 text-red-600 p-6 rounded-3xl border border-red-100 text-xs flex items-center gap-3 animate-in shake duration-500">
+                  <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                    <AlertTriangle className="w-4 h-4 text-red-600" />
+                  </div>
+                  <div>
+                    <p className="font-bold mb-1">AI Communication Error</p>
+                    <p className="opacity-80">{analysisError}</p>
+                  </div>
                 </div>
               )}
 
