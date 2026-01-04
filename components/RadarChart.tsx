@@ -26,11 +26,14 @@ export function RadarChart({ scoresA, scoresB, labelA, labelB }: RadarChartProps
   };
 
   const getPath = (scores: DomainScore[]) => {
-    // Ensure scores are sorted by OCEAN order for consistency
-    const sorted = domains.map(d => scores.find(s => s.domain.startsWith(d)) || { percentage: 0 });
+    // Ensure scores are mapped to OCEAN order for consistency
+    const sortedPercentages = domains.map(d => {
+      const found = scores.find(s => s.domain.startsWith(d));
+      return found ? found.percentage : 0;
+    });
     
-    return sorted.map((s, i) => {
-      const { x, y } = getCoordinates(s.percentage as number, i);
+    return sortedPercentages.map((p, i) => {
+      const { x, y } = getCoordinates(p, i);
       return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
     }).join(' ') + ' Z';
   };
