@@ -39,11 +39,18 @@ export interface TestResult {
   personName: string;
 }
 
+export interface GroundingSource {
+  title: string;
+  uri: string;
+}
+
 export interface AnalysisResult {
   overview: string;
   frictionPoints: string[];
+  groupDynamics?: string; // Insights specifically for 3+ people
   scientificContext: string;
   strategies: string[];
+  groundingSources?: GroundingSource[];
 }
 
 export interface ChatMessage {

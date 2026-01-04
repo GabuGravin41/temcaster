@@ -1,23 +1,37 @@
 // geminiService.ts
 import { GoogleGenAI, Type } from "@google/genai";
-import { DomainScore, AnalysisResult, Profile, ChatMessage } from "../types.ts";
+import { DomainScore, AnalysisResult, Profile, ChatMessage, GroundingSource } from "../types.ts";
 
 export const analyzeRelationship = async (
-  profileA: { name: string; scores: DomainScore[]; role: string },
-  profileB: { name: string; scores: DomainScore[]; role: string }
+  selectedProfiles: Profile[]
 ): Promise<AnalysisResult> => {
   const apiKey = process.env.API_KEY;
   if (!apiKey) throw new Error("MISSING_API_KEY");
   
   const ai = new GoogleGenAI({ apiKey });
 
-  const prompt = `
-    Analyze the personality dynamics between Person A (${profileA.name}, ${profileA.role}) and Person B (${profileB.name}, ${profileB.role}).
-    
-    A Scores: ${JSON.stringify(profileA.scores.map(s => ({ d: s.domain, p: s.percentage })))}
-    B Scores: ${JSON.stringify(profileB.scores.map(s => ({ d: s.domain, p: s.percentage })))}
+  const isGroup = selectedProfiles.length > 2;
+  const profilesSummary = selectedProfiles.map(p => ({
+    name: p.name,
+    role: p.role,
+    scores: p.scores.map(s => ({ d: s.domain, p: s.percentage, l: s.level }))
+  }));
 
-    Identify the most critical friction point, explain the psychological mechanism, and provide if/then protocols.
+  const prompt = `
+    Analyze the personality dynamics for the following ${selectedProfiles.length} individuals:
+    ${JSON.stringify(profilesSummary, null, 2)}
+
+    TASK:
+    1. Identify core friction points between specific individuals or the group as a whole.
+    2. PROVIDE SCIENTIFIC CONTEXT: Ground your advice in established Big Five psychological theory.
+    3. GROUP INSIGHTS: ${isGroup ? 'Analyze the group "vibe" and identify clusters (e.g., who is the emotional outlier, who is the stabilizer).' : 'Analyze the primary relationship dyad.'}
+    4. STRATEGIES: Provide actionable If/Then protocols for better communication.
+
+    CRITICAL VALIDATION (Chain of Thought):
+    Before generating your final response, cross-verify every single percentage and trait level cited in your text against the input data. Do not misrepresent the numbers. If a person has 20% Agreeableness, do not call them "moderately agreeable".
+
+    GROUNDING:
+    Use your available tools to find a brief, credible scientific reference or study related to one of the identified friction points (e.g., "Parent-Child conflict in High Neuroticism pairs").
   `;
 
   const responseSchema = {
@@ -25,6 +39,7 @@ export const analyzeRelationship = async (
     properties: {
       overview: { type: Type.STRING },
       frictionPoints: { type: Type.ARRAY, items: { type: Type.STRING } },
+      groupDynamics: { type: Type.STRING, description: "Specific insights for 3+ people" },
       scientificContext: { type: Type.STRING },
       strategies: { type: Type.ARRAY, items: { type: Type.STRING } },
     },
@@ -37,10 +52,28 @@ export const analyzeRelationship = async (
     config: {
       responseMimeType: "application/json",
       responseSchema: responseSchema,
+      tools: [{ googleSearch: {} }],
     },
   });
 
-  return JSON.parse(response.text!) as AnalysisResult;
+  const parsed = JSON.parse(response.text!) as AnalysisResult;
+  
+  // Extract grounding chunks as scientific citations
+  const sources: GroundingSource[] = [];
+  const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+  if (chunks) {
+    chunks.forEach((chunk: any) => {
+      if (chunk.web?.uri) {
+        sources.push({
+          title: chunk.web.title || "Scientific Reference",
+          uri: chunk.web.uri
+        });
+      }
+    });
+  }
+  
+  parsed.groundingSources = sources;
+  return parsed;
 };
 
 export const chatAboutProfiles = async (
@@ -64,7 +97,8 @@ export const chatAboutProfiles = async (
       Profiles in current comparison:
       ${context}
       
-      Provide concise, empathetic, and scientifically grounded advice. Focus on the data gaps between these people.`
+      Provide concise, empathetic, and scientifically grounded advice. Focus on the data gaps between these people.
+      Always double-check the percentages provided in the context before answering.`
     }
   });
 
