@@ -4,8 +4,9 @@ import { useLocation } from "wouter";
 import { getQuestions, calculateScores } from "../lib/scoring.ts";
 import { saveProfile, generateId, saveTestProgress, getTestProgress, clearTestProgress } from "../services/storage.ts";
 import { Button } from "../components/ui/button.tsx";
-import { ArrowLeft, Save, User, Users, RefreshCw } from "lucide-react";
+import { ArrowLeft, Save, User, Users, RefreshCw, ShieldAlert } from "lucide-react";
 import { Answer, Profile } from "../types.ts";
+import { isAuthenticated } from "../services/authService.ts";
 
 export default function TestPage() {
   const [_, setLocation] = useLocation();
@@ -59,8 +60,20 @@ export default function TestPage() {
 
   const handleSaveProfile = () => {
     if (!name.trim()) return;
-    setIsSubmitting(true);
     
+    // If not logged in, we MUST force signup to save data permanently
+    if (!isAuthenticated()) {
+      // Store temporary result to be "claimed" after login
+      localStorage.setItem("pdl_pending_result", JSON.stringify({
+        name,
+        role: profileType === 'me' ? 'Self' : role,
+        answers
+      }));
+      setLocation("/auth?claim=true");
+      return;
+    }
+
+    setIsSubmitting(true);
     const finalRole = profileType === 'me' ? 'Self' : role;
     const scores = calculateScores(answers);
     const newProfile: Profile = {
@@ -101,7 +114,7 @@ export default function TestPage() {
          <div className="max-w-lg w-full bg-card border border-border rounded-[32px] p-8 md:p-12 shadow-xl space-y-8">
             <div className="text-center space-y-2">
               <h2 className="text-3xl font-serif text-primary">Assessment Complete</h2>
-              <p className="text-muted-foreground text-sm">Let's label this data before saving.</p>
+              <p className="text-muted-foreground text-sm">Label this profile before saving.</p>
             </div>
 
             <div className="space-y-4">
@@ -127,7 +140,7 @@ export default function TestPage() {
             {profileType && (
               <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Identifying Name</label>
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-2">Identifying Name</label>
                   <input 
                     type="text" 
                     value={name}
@@ -154,6 +167,13 @@ export default function TestPage() {
                     </div>
                   </div>
                 )}
+
+                <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 flex gap-3 items-start">
+                   <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                   <p className="text-[10px] text-amber-800 leading-normal">
+                     Note: To comply with dynamic laboratory privacy standards, results are only visible within a <strong>Private Vault</strong>. You will be asked to sign in/up to decrypt your report.
+                   </p>
+                </div>
 
                 <Button onClick={handleSaveProfile} disabled={!name || isSubmitting} className="w-full h-12 text-md rounded-xl shadow-lg">
                   {isSubmitting ? "Processing..." : "Finish and Analyze"} <Save className="ml-2 w-4 h-4" />

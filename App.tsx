@@ -1,13 +1,23 @@
+
 // App.tsx
 import React from "react";
-import { Route, Switch, Link } from "wouter";
+import { Route, Switch, Link, Redirect } from "wouter";
 import Header from "./components/Header.tsx";
 import HomePage from "./pages/HomePage.tsx";
 import TestPage from "./pages/TestPage.tsx";
 import ResultsPage from "./pages/ResultsPage.tsx";
 import ComparePage from "./pages/ComparePage.tsx";
 import LearnPage from "./pages/LearnPage.tsx";
+import AuthPage from "./pages/AuthPage.tsx";
 import { Button } from "./components/ui/button.tsx";
+import { isAuthenticated } from "./services/authService.ts";
+
+const PrivateRoute = ({ component: Component, ...rest }: any) => {
+  if (!isAuthenticated()) {
+    return <Redirect to="/auth" />;
+  }
+  return <Component {...rest} />;
+};
 
 export default function App() {
   return (
@@ -16,12 +26,22 @@ export default function App() {
       <main className="flex-1">
         <Switch>
           <Route path="/" component={HomePage} />
+          <Route path="/auth" component={AuthPage} />
           <Route path="/test" component={TestPage} />
-          {/* Support both the generic results view and specific profile view */}
-          <Route path="/results" component={ResultsPage} />
-          <Route path="/results/:id" component={ResultsPage} />
-          <Route path="/compare" component={ComparePage} />
           <Route path="/learn" component={LearnPage} />
+          
+          {/* Protected Routes */}
+          <Route path="/results">
+            {() => <PrivateRoute component={ResultsPage} />}
+          </Route>
+          <Route path="/results/:id">
+            {/* Added null check for params to satisfy TypeScript and prevent runtime errors */}
+            {(params) => params ? <PrivateRoute component={ResultsPage} id={params.id} /> : null}
+          </Route>
+          <Route path="/compare">
+            {() => <PrivateRoute component={ComparePage} />}
+          </Route>
+
           <Route>
             <div className="min-h-[70vh] flex items-center justify-center p-6 text-center">
               <div className="animate-in fade-in zoom-in duration-500">
