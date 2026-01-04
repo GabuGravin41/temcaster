@@ -1,3 +1,4 @@
+
 // ResultsPage.tsx
 import React, { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
@@ -11,7 +12,8 @@ import { ArrowLeft, Users, ChevronRight, ChevronDown, Share2, Copy, Check, Downl
 
 export default function ResultsPage() {
   const [_, setLocation] = useLocation();
-  const params = useParams();
+  // Explicitly cast params to handle potential missing type definitions in library
+  const params = useParams() as { id?: string };
   const [result, setResult] = useState<TestResult | null>(null);
   const [expandedDomain, setExpandedDomain] = useState<string | null>(null);
   const [showShare, setShowShare] = useState(false);

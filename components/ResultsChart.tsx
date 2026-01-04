@@ -1,8 +1,11 @@
+
 // ResultsChart.tsx
 import React, { useState } from "react";
 import { DomainScore } from '../types.ts';
 import { ChevronDown, ChevronRight, BarChart, ExternalLink } from "lucide-react";
 import { Link } from "wouter";
+// Add missing import for Button component
+import { Button } from "./ui/button.tsx";
 
 interface ResultsChartProps {
   scores: DomainScore[];
