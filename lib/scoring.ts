@@ -863,36 +863,79 @@ const questions: Question[] = [
 
 export const getQuestions = () => questions;
 
+// NEW: Add these helper functions and constant here (right after getQuestions)
+
+// Approximation of the error function (erf)
+function erf(x: number): number {
+  const sign = x >= 0 ? 1 : -1;
+  x = Math.abs(x);
+
+  const a1 = 0.254829592;
+  const a2 = -0.284496736;
+  const a3 = 1.421413741;
+  const a4 = -1.453152027;
+  const a5 = 1.061405429;
+  const p = 0.3275911;
+
+  const t = 1.0 / (1.0 + p * x);
+  const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+
+  return sign * y;
+}
+
+// Normal CDF → percentile
+function getPercentile(z: number): number {
+  if (z > 6) return 100;
+  if (z < -6) return 0;
+  const cdf = 0.5 * (1 + erf(z / Math.sqrt(2)));
+  return Math.round(cdf * 100);
+}
+
+// Norm-based descriptor
+function getNormLevel(percentile: number): string {
+  if (percentile < 10) return 'Very Low';
+  if (percentile < 30) return 'Low';
+  if (percentile <= 70) return 'Average';
+  if (percentile < 90) return 'High';
+  return 'Very High';
+}
+
+// Approximate norms from large samples
+const DOMAIN_NORMS: Record<'O' | 'C' | 'E' | 'A' | 'N', { mean: number; sd: number }> = {
+  O: { mean: 87, sd: 14 },
+  C: { mean: 91, sd: 14 },
+  E: { mean: 82, sd: 16 },
+  A: { mean: 94, sd: 11 },
+  N: { mean: 73, sd: 17 },
+};
+
+// NEW: Replace your old calculateScores with this entire function
 export const calculateScores = (answers: Answer[]): DomainScore[] => {
-  const domainMap: Record<string, Domain> = {
-    'O': 'Openness',
-    'C': 'Conscientiousness',
-    'E': 'Extraversion',
-    'A': 'Agreeableness',
-    'N': 'Neuroticism'
+  const domainMap: Record<string, string> = {
+    O: 'Openness',
+    C: 'Conscientiousness',
+    E: 'Extraversion',
+    A: 'Agreeableness',
+    N: 'Neuroticism'
   };
 
   const domainScores: Record<string, number> = { O: 0, C: 0, E: 0, A: 0, N: 0 };
   const domainCounts: Record<string, number> = { O: 0, C: 0, E: 0, A: 0, N: 0 };
 
-  // Track facets: { 'N1': score, 'N2': score, ... }
   const facetScores: Record<string, number> = {};
   const facetCounts: Record<string, number> = {};
 
   answers.forEach(answer => {
     const q = questions.find(q => q.id === answer.questionId);
     if (!q) return;
+
     let val = answer.value;
-    
-    // Map 1-5 scale: If keyed minus, reverse the score.
     if (q.keyed === 'minus') val = 6 - answer.value;
-    
-    // Aggregate Domain
+
     domainScores[q.domain] += val;
     domainCounts[q.domain]++;
 
-    // Aggregate Facet
-    const facetKey = `${q.domain}${q.facet}`; // e.g., "N1"
+    const facetKey = `${q.domain}${q.facet}`;
     facetScores[facetKey] = (facetScores[facetKey] || 0) + val;
     facetCounts[facetKey] = (facetCounts[facetKey] || 0) + 1;
   });
@@ -900,39 +943,47 @@ export const calculateScores = (answers: Answer[]): DomainScore[] => {
   return Object.keys(domainMap).map(key => {
     const raw = domainScores[key];
     const count = domainCounts[key];
-    const max = count > 0 ? count * 5 : 5; 
-    const percentage = Math.round((raw / max) * 100);
-    
-    let level: 'Low' | 'Neutral' | 'High' = 'Neutral';
-    if (percentage < 40) level = 'Low';
-    else if (percentage > 60) level = 'High';
-    
-    // Build facets for this domain
+    const max = count * 5;
+    const rawPercentage = max > 0 ? Math.round((raw / max) * 100) : 0;
+
+    // Norm-based percentile
+    const norms = DOMAIN_NORMS[key as keyof typeof DOMAIN_NORMS];
+    const z = (raw - norms.mean) / norms.sd;
+    const percentile = getPercentile(z);
+    const level = getNormLevel(percentile);
+
+    // Facets (raw % with simple levels)
     const facets: FacetScore[] = [];
-    // There are always 6 facets per domain in NEO-PI-R
     for (let i = 1; i <= 6; i++) {
-        const fKey = `${key}${i}`;
-        const fRaw = facetScores[fKey] || 0;
-        const fCount = facetCounts[fKey] || 0;
-        const fMax = fCount > 0 ? fCount * 5 : 5;
-        const fPct = Math.round((fRaw / fMax) * 100);
-        
-        let fLevel: 'Low' | 'Neutral' | 'High' = 'Neutral';
-        if (fPct < 40) fLevel = 'Low';
-        else if (fPct > 60) fLevel = 'High';
+      const fKey = `${key}${i}`;
+      const fRaw = facetScores[fKey] || 0;
+      const fCount = facetCounts[fKey] || 0;
+      const fMax = fCount * 5;
+      const fPct = fMax > 0 ? Math.round((fRaw / fMax) * 100) : 0;
 
-        // Get name from map (array index is facetNum - 1)
-        const fName = FACET_NAMES[key][i - 1] || `Facet ${i}`;
+      let fLevel: 'Low' | 'Neutral' | 'High' = 'Neutral';
+      if (fPct < 40) fLevel = 'Low';
+      if (fPct > 60) fLevel = 'High';
 
-        facets.push({
-            name: fName,
-            score: fRaw,
-            maxScore: fMax,
-            percentage: fPct,
-            level: fLevel
-        });
+      const fName = FACET_NAMES[key][i - 1] || `Facet ${i}`;
+
+      facets.push({
+        name: fName,
+        score: fRaw,
+        maxScore: fMax,
+        percentage: fPct,
+        level: fLevel
+      });
     }
 
-    return { domain: domainMap[key], score: raw, maxScore: max, percentage, level, facets };
+    return {
+      domain: domainMap[key],
+      score: raw,
+      maxScore: max,
+      percentage: rawPercentage,   // raw % for reference
+      percentile,                  // NEW: normed percentile
+      level,                       // NEW: norm-based level (Very Low/Low/Average/High/Very High)
+      facets
+    };
   });
 };
