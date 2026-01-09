@@ -10,11 +10,12 @@ export interface FacetScore {
 }
 
 export interface DomainScore {
-  domain: Domain;
+  domain: string;
   score: number;
   maxScore: number;
-  percentage: number;
-  level: 'Low' | 'Neutral' | 'High';
+  percentage: number;      // raw percentage
+  percentile: number;      // ADD THIS
+  level: string;           // CHANGE to string (or make it a union of the 5 possible values)
   facets: FacetScore[];
 }
 
